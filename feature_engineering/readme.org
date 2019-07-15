@@ -1,0 +1,31 @@
+* Features engineering
+Feature engineering is the process of transforming raw data into features that better represent the underlying problem to the predictive models, resulting in improved model accuracy on unseen data.
+
+* Sub-Problems of feature engineering
++ Feature Importance: An estimate of the usefulness of a feature
++ Feature Selection: From many features to a few that are useful
++ Feature Extraction: The automatic construction of new features from raw data
++ Feature Construction: The manual construction of new features from raw data
+
+** Features extraction
+Extracting features is one of the most critical task in data mining, and it generally affects your end result more
+than the choice of data mining algorithm. Unfortunately, there are no hard and fast rule for choosing features that
+will result in high-prefromance data mining. The choice of features determines the model that you are using to 
+represent your data.
+
+** Feature selection
+After initial modeling, we will often have a large number of features to choose from, but we wish to select only a small subset.
++ *Reducing complexity*: Many data mining algorithms need significantly more time and resources when the number of features increase.
+Reducing the number of features is a great way to make an algorithm run faster or with fewer resources.
++ *Reducing noise*: Adding extra features doesn't always lead to better performance. Extra feature may confuse the algorithm, finding
+correlations and patterns in training data that do not have any actual meaning. This is  common in both smaller and larger datasets.
+Choosing only appropriate features is a good way to reduce the chance of random correlations that have no real meaning.
++ *Creating readable models*: While many data mining algorithm will happily compute an answer for models with thousands of features, the
+results may be difficult to interpret for a human. In these cases, it may be worth using fewer features and creating a model that a 
+human can understand.
+
+* Iterative process of feature engineering
++ Brainstorm features: Really get into the problem, look at a lot of data, study feature engineering on other problems and see what you can steal.
++ Devise features: Depends on your problem, but you may use automatic feature extraction, manual feature construction and mixtures of the two.
++ Select features: Use different feature importance scorings and feature selection methods to prepare one or more “views” for your models to operate upon.
++ Evaluate models: Estimate model accuracy on unseen data using the chosen features.
