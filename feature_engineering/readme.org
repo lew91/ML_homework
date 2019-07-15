@@ -24,8 +24,103 @@ Choosing only appropriate features is a good way to reduce the chance of random 
 results may be difficult to interpret for a human. In these cases, it may be worth using fewer features and creating a model that a 
 human can understand.
 
+feature selection methods:
++ Wrapper methods evaluate multiple models using procedures that add and/or remove predictors to find the optimal combination that maximizes model performance. In essence, wrapper methods are search algorithms that treat the predictors as the inputs and utilize model performance as the output to be optimized.
++ Filter methods evaluate the relevance of the predictors outside of the predictive models and subsequently model only the predictors that pass some criterion. For example, for classification problems, each predictor could be individually evaluated to check if there is a plausible relationship between it and the observed classes. Only predictors with important relationships would then be included in a classification model
+
+
 * Iterative process of feature engineering
 + Brainstorm features: Really get into the problem, look at a lot of data, study feature engineering on other problems and see what you can steal.
 + Devise features: Depends on your problem, but you may use automatic feature extraction, manual feature construction and mixtures of the two.
 + Select features: Use different feature importance scorings and feature selection methods to prepare one or more “views” for your models to operate upon.
 + Evaluate models: Estimate model accuracy on unseen data using the chosen features.
+
+
+* Data preprocessing
+** Dealing with missing data
+using pandas model dealing with the missing data
+DataFrame.isnull()
+DataFrame.dropna()
+DataFrame.dropna(axis=1)
+DataFrame.dropna(how='all')
+** Mapping ordinal features
+#+BEGIN_SRC python
+size_mapping = {
+           'XL': 3,
+           'L': 2,
+           'M': 1}
+
+df['size'] = df['size'].map(size_mapping)
+
+# transform the integer values back to the original string
+inv_size_mapping = {v: k for k, v in size_mapping.items()}
+df['size'].map(inv_size_mapping)
+#+END_SRC
+** Performing one-hot encoding on nominal features
+#+BEGIN_SRC python 
+from sklearn.preprocessing import OneHotEncoder
+
+ohe = OneHotEncoder(categorical_features=[0], sparse=False)
+#+END_SRC
+** Bringing features onto the same scale
++ normalization: re-scaling to [0, 1], e.g. min-max scaling
++ standardization: more practical.
+#+BEGIN_SRC python :results output
+# min-max rescaling
+from sklearn.preprocessing import MinMaxScaler
+
+mms = MinMaxScaler()
+X_train_norm = mms.fit_transform(X_train)
+X_test_norm = mms.transform(X_test)
+#+END_SRC
+#+BEGIN_SRC python :results output
+# standarzation
+from sklearn.preprocessing import StandardScaler
+
+stdsc = StandardScaler()
+X_train_std = stdsc.fit_transform(X_train)
+X_test_std = stdsc.transform(X_test)
+#+END_SRC
+
+* Feature selection
+** Univariate statistics
+The simplest method to select features is using univariate statistics, that is by looking at each feature individually and running a statistical test to see whether it is related to the target.
+
+Univariate statistics in sklearn:
++ for regression: f_regression
++ for classification: chi2 or f_classif 
+
+Once we got the statistics and p-value, we have those choose:
++ SelectKBest: removes all but the k highest scoring features
++ SelectPercentile: removes all but a user-specified highest scoring percentage of features
++ GenericUnivariateSelect: allows to perform univariate feature selection with a configurable strategy. This allows to select the best univariate selection strategy with hyper-parameter search estimator.
++ using common univariate statistical tests for each feature: false positive rate SelectFpr, false discovery rate SelectFdr, or family wise error SelectFwe.
+
+** Recursive feature elimination
+using common univariate statistical tests for each feature: false positive rate SelectFpr, false discovery rate SelectFdr, or family wise error SelectFwe.
+#+BEGIN_SRC python :results output
+from sklearn.feature_selection import RFE
+from sklearn.svm import SVC
+
+svc = SVC(kernel="linear", C=1)
+rfe = RFE(estimator=svc, 
+          n_features_to_select=6,  
+          step=1)  
+rfe.fit(X_train, y_train)
+
+X_rfe_selected = rfe.transform(X_train)
+
+mask = rfe.get_support()
+print(mask)
+#+END_SRC
+** Feature selection using SelectFromModel
+SelectFromModel is a meta-transformer that can be used along with any estimator that has a coef or feature_importances attribute after fitting. The features are considered unimportant and removed, if the corresponding coef or feature_importances values are below the provided threshold parameter. Apart from specifying the threshold numerically, there are build-in heuristics for finding a threshold using a string argument. Available heuristics are “mean”, “median” and float multiples of these like “0.1*mean”.
+
+一些模型能比较每个 feature 的重要程度，例如 线性模型加上 L1 正则项之后不重要的特征的系数会惩罚为0，随机森林模型能计算每个 feature 的重要程度。
+然后 sklearn 有个 SelectFromModel 函数可以配合这些模型进行特征选择
+
+
+
+
+
+
