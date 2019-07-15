@@ -1,0 +1,3 @@
+source from: http://archive.ics.uci.edu/ml/machine-learning-databases/adult/
+
+target: Estimate if someone earns more the $50,000 per year.
