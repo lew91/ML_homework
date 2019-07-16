@@ -119,8 +119,83 @@ SelectFromModel is a meta-transformer that can be used along with any estimator 
 一些模型能比较每个 feature 的重要程度，例如 线性模型加上 L1 正则项之后不重要的特征的系数会惩罚为0，随机森林模型能计算每个 feature 的重要程度。
 然后 sklearn 有个 SelectFromModel 函数可以配合这些模型进行特征选择
 
+*L1-based feature selection*
+L2 norm: $||w||^2_2 = \sum^m_{j=1} w^2_j$
+L1 norm: $||w||_1 = \sum^m_{j=1} |w_j|$
+与L2正则相比，L1正则会让更多系数为0
+如果有个高维数据，有很多特征是无用，那么L1 regularizationn 就可以被当作一种特征选择方法。
+#+BEGIN_SRC python 
+  from sklearn.linear_model import LogisticRegression
+  # sklearn 想用L1 正则，把penalty参数设为 ‘L1 ’
+  lr = LogisticRegression(penalty='l1', C=0.1)
+  lr.fit(X_train, y_train)
+
+  print('Training accuracy:', lr.score(X_train, y_train))
+  print('Test accuracy:', lr.score(X_test_std, y_test))
+#+END_SRC 
+随着 L1 正则项增大，无关特征便排除出模型 (系数变为 0)，因此 L1 正则可以作为特征选择的一种方法
+结合 sklearn 的 SelectFromModel 进行选择
+#+BEGIN_SRC python :results output
+  from sklearn.feature_selection import SelectFromModel
+
+  model_l1 = SelectFromModel(lr, threshold='median', prefit=True)
+  X_l1_selected = model_l1.transform(X)
+#+END_SRC
 
 
 
 
+
+
+
+** Tree-based feature selection
+随机森林算法可以测量各个特征的重要性，因此可以作为特征选择的一种手段
+#+BEGIN_SRC python :results output
+  from sklearn.ensemble import RandomForestClassifier
+
+  feat_labels = df_wine.columns[1:]
+
+  # 使用 decision tree 或 random forests 不需要 standardization或 normalization
+  forest = RandomForestClassifier(n_estimators=1000,  
+                                  random_state=0,
+                                  n_jobs=-1)
+  forest.fit(X_train, y_train)
+
+  # random forest 比较特殊, 有 feature_importances 这个 attribute
+  importances = forest.feature_importances_
+
+  indices = np.argsort(importances)[::-1]
+  for i, idx in enumerate(indices):
+      print("%2d) %-*s %f" % (i + 1, 30, 
+                              feat_labels[idx], 
+                              importances[idx]))
+#+END_SRC
+结合 Sklearn 的 SelectFromModel 进行特征选择
+#+BEGIN_SRC python :results output
+from sklearn.feature_selection import SelectFromModel
+from sklearn.ensemble import RandomForestClassifier
+
+select_rf = SelectFromModel(forest, threshold=0.1, prefit=True)
+
+# 或者重新训练一个模型
+# select = SelectFromModel(RandomForestClassifier(n_estimators=10000, random_state=0, n_jobs=-1), threshold=0.15, prefit=True)
+# select.fit(X_train, y_train)
+
+X_train_rf = select_rf.transform(X_train)
+
+print(X_train.shape[1])  # 原始特征维度
+print(X_train_rf.shape[1])  # 特征选择后特征维度
+#+END_SRC
+也能将随机森林和 Sequential selection 结合起来
+#+BEGIN_SRC python :results output
+from sklearn.feature_selection import RFE
+select = RFE(RandomForestClassifier(n_estimators=100, random_state=0), 
+             n_features_to_select=3)
+
+select.fit(X_train, y_train)
+# visualize the selected features:
+mask = select.get_support()
+plt.matshow(mask.reshape(1, -1), cmap='gray_r');
+#+END_SRC
+* Feature extraction
 
