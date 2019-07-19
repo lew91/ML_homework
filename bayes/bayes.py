@@ -1,5 +1,6 @@
 import numpy as np
-import re 
+import re
+import random
 
 
 def loadDataSet():
@@ -102,24 +103,24 @@ def spamTest():
         fullText.extend(wordList)
         classList.append(0)
     vocabList = createVocabList(docList)
-    trainingSet = rang(50)
+    trainingSet = range(50)
     testSet = []
     for i in range(10):
         randIndex = int(random.uniform(0, len(trainingSet)))
         testSet.append(trainingSet[randIndex])
-        del[trainingSet[randIndex]]
+        #del(trainingSet[randIndex])   # 'range' object doesn't support item deletion
     trainMat = []
     trainClasses = []
     for docIndex in trainingSet:
-        trainMat.append(setOfWords2Vec(vocaList, docList[docIndex]))
+        trainMat.append(setOfWords2Vec(vocabList, docList[docIndex]))
         trainClasses.append(classList[docIndex])
     p0V, p1V, pSpam = trainNB0(np.array(trainMat), np.array(trainClasses))
     errorCount = 0
     for docIndex in testSet:
-        wordVector = setOfWords2Vec(vocaList, docList[docIndex])
+        wordVector = setOfWords2Vec(vocabList, docList[docIndex])
         if classfyNB(np.array(wordVector), p0V, p1V, pSpam) != classList[docIndex]:
             errorCount += 1
     print('The error rate is : ', float(errorCount)/len(testSet))
 
-    
+
 
