@@ -1,5 +1,6 @@
 import random
 from numpy import *
+from os import listdir
 import matplotlib.pyplot as plt
 
 
@@ -12,6 +13,34 @@ def loadDataSet(filename):
         dataMat.append([float(lineArr[0]), float(lineArr[1])])
         labelMat.append(float(lineArr[2]))
     return dataMat, labelMat
+
+
+def loadImage(dirName):
+    hwLabels = []
+    trainingFileList = listdir(dirName)
+    m = len(trainingFileList)
+    trainingMat = zeros((m, 1024))
+    for i in range(m):
+        fileNameStr = trainingFileList[i]
+        fileStr = fileNameStr.split('.')[0]
+        classNumStr = int(fileStr.split('_')[0])
+        if classNumStr == 9:
+            hwLabels.append(-1)
+        else:
+            hwLabels.append(1)
+        trainingMat[i, :] = img2vector('%s/%s' % (dirName, fileNameStr))
+    return trainingMat, hwLabels
+
+
+def img2vector(filename):
+    returnVect = zeros((1, 1024))
+    fr = open(filename)
+    for i in range(32):
+        lineStr = fr.readline()
+        for j in range(32):
+            returnVect[0, 32 * i + j] = int(lineStr[j])
+    fr.close()
+    return returnVect
 
 
 class optStruct:
@@ -397,6 +426,51 @@ def testRbf(k1=1.3):
 
     # 绘制数据集
     showDataSet(dataArr, labelArr, alphas)
+
+
+def testDigits(kTup=('rbf', 10)):
+    # 加载训练集
+    dataArr, labelArr = loadImage('trainingDigits')
+
+    b, alphas = smoP(dataArr, labelArr, 200, 0.0001, 100, ('rbf', k1))
+    dataMat = mat(dataArr)
+    labelMat = mat(labelArr).transpose()
+
+    # 获得支持向量
+    svInd = nonzero(alphas.A > 0)[0]
+    sVs = dataMat[svInd]
+    labelSV = labelMat[svInd]
+    print("支持向量个数: %d" % shape(sVs)[0])
+
+    m, n = shape(dataMat)
+    errorCount = 0
+
+    for i in range(m):
+        # 计算各个点的核
+        kernelEval = kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        # 根据支持向量的点计算超平面， 返回预测结果
+        predict = kernelEval.T * multiply(labelSV, alphas[svInd]) + b
+
+        if sign(predict) != sign(labelArr[i]):
+            errorCount += 1
+
+    print("训练集错误率: %.2f%%" % ((float(errorCount) / m) * 100))
+
+    # 加载测试集
+    dataArr, labelArr = loadImage('testDigits')
+    errorCount = 0
+    dataMat = mat(dataArr)
+    labelMat = mat(labelArr).transpose()
+    m, n = shape(dataMat)
+
+    for i in range(m):
+        kernelEval = kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        predict = kernelEval.T * multiply(labelSV, alphas[svInd]) + b
+
+        if sign(predict) != sign(labelArr[i]):
+            errorCount += 1
+
+    print("测试集错误率: %.2f%%" % ((float(errorCount) / m) * 100))
 
 
 def calcWs(alphas, dataArr, classLabels):
