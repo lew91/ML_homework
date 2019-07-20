@@ -24,13 +24,15 @@ class optStruct:
     classLabels : 数据标签
     C : 松弛变量
     toler : 容错率
+    kTup : 包含核函数信息的元组，第一个参数存放核函数类别，
+    第二个参数存放必要的核函数需要用到的参数
 
     Returns
     -----------------
     None
     """
 
-    def __init__(self, dataMatIn, classLabels, C, toler):
+    def __init__(self, dataMatIn, classLabels, C, toler, kTup):
         self.X = dataMatIn
         self.labelMat = classLabels
         self.C = C
@@ -40,6 +42,43 @@ class optStruct:
         self.b = 0
         # 根据矩阵行数初始化误差缓存矩阵，第一列为是否有效标志位，第二列 为实际的误差E的值
         self.eCache = mat(zeros((self.m, 2)))
+        self.K = mat(zeros((self.m, self.m)))
+
+        for i in range(self.m):
+            self.K[:, i] = kernelTrans(self.X, self.X[i, :], kTup)
+
+
+def kernelTrans(X, A, kTup):
+    """
+    通过核函数将数据转换更高维空间
+
+    Parameters
+    -----------------------
+    X : 数据矩阵
+    A : 单个数据向量
+    kTup : 包含核函数信息的元组
+
+    Returns
+    ------------------------
+    K : 计算的核K
+    """
+    m, n = shape(X)
+    K = mat(zeros((m, 1)))
+
+    # 线性核函数只计算内积
+    if kTup[0] == 'lin':
+        K = X * A.T
+
+    # 高斯核函数
+    elif kTup[0] == 'rbf':
+        for j in range(m):
+            deltaRow = X[j, :] - A
+            K[j] = deltaRow * deltaRow.T
+        K = exp(K / (-1 * kTup[1] ** 2))
+    else:
+        raise NameError("核函数无法识别")
+
+    return K 
 
 
 def calcEk(oS, k):
@@ -55,7 +94,11 @@ def calcEk(oS, k):
     --------------
     Ek : 标号为k的数据误差
     """
-    fXk = float(multiply(oS.alphas, oS.labelMat).T * (oS.X * oS.X[k, :].T)) + oS.b
+    # fXk = float(multiply(oS.alphas, oS.labelMat).T * (oS.X * oS.X[k, :].T)) + oS.b
+
+    # 应用核函数
+    fXk = float(multiply(oS.alphas, oS.labelMat).T * oS.K[:, k] + oS.b)
+    
     Ek = fXk - float(oS.labelMat[k])
     return Ek
 
@@ -194,8 +237,12 @@ def innerL(i, oS):
             print("L == H")
             return 0
 
-        eta = 2.0 * oS.X[i, :] * oS.X[j, :].T - oS.X[i, :] * oS.X[i, :].T - \
-            oS.X[j, :] * oS.X[j, :].T
+        # eta = 2.0 * oS.X[i, :] * oS.X[j, :].T - oS.X[i, :] * oS.X[i, :].T - \
+        #    oS.X[j, :] * oS.X[j, :].T
+
+        # 应用核函数版
+        eta = 2.0 * oS.K[i, j] - oS.K[i, i] - oS.K[j, j]
+        
         if eta >= 0:
             print("eta >= 0")
             return 0
@@ -212,12 +259,20 @@ def innerL(i, oS):
             (alphaJold - oS.alphas[j])
         updataEk(oS, i)
 
+        # b1 = oS.b - Ei - \
+        #     oS.labelMat[i] * (oS.alphas[i] - alphaIold) * oS.X[i, :] * oS.X[i, :].T - \
+        #     oS.labelMat[j] * (oS.alphas[j] - alphaJold) * oS.X[j, :] * oS.X[i, :].T
+        # b2 = oS.b - Ej - \
+        #     oS.labelMat[i] * (oS.alphas[i] - alphaIold) * oS.X[i, :] * oS.X[j, :].T - \
+        #     oS.labelMat[j] * (oS.alphas[j] - alphaJold) * oS.X[j, :] * oS.X[j, :].T
+
+        # 应用核函数版
         b1 = oS.b - Ei - \
-            oS.labelMat[i] * (oS.alphas[i] - alphaIold) * oS.X[i, :] * oS.X[i, :].T - \
-            oS.labelMat[j] * (oS.alphas[j] - alphaJold) * oS.X[j, :] * oS.X[i, :].T
+            oS.labelMat[i] * (oS.alphas[i] - alphaIold) * oS.K[i, i] - \
+            oS.labelMat[j] * (oS.alphas[j] - alphaJold) * oS.K[i, j]
         b2 = oS.b - Ej - \
-            oS.labelMat[i] * (oS.alphas[i] - alphaIold) * oS.X[i, :] * oS.X[j, :].T - \
-            oS.labelMat[j] * (oS.alphas[j] - alphaJold) * oS.X[j, :] * oS.X[j, :].T
+            oS.labelMat[i] * (oS.alphas[i] - alphaIold) * oS.K[i, j] - \
+            oS.labelMat[j] * (oS.alphas[j] - alphaJold) * oS.K[j, j]
 
         if(0 < oS.alphas[i] < oS.C):
             oS.b = b1
@@ -230,7 +285,7 @@ def innerL(i, oS):
         return 0
 
 
-def smoP(dataMatIn, classLabels, C, toler, maxIter):
+def smoP(dataMatIn, classLabels, C, toler, maxIter, kTup=('lin', 0)):
     """
     完整的线性SMO算法
 
@@ -241,13 +296,15 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter):
     C : 松弛变量
     toler : 容错率
     maxIter : 最大迭代次数
+    kTup : 包含核函数信息的元组
 
     Returns
     --------------------
     oS.b : SMO算法计算的b
     oS.alphas : SMO算法计算的alphas
     """
-    oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler)
+    # oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler)
+    oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler, kTup)
 
     iter = 0
     entrieSet = True
@@ -282,6 +339,66 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter):
     return oS.b, oS.alphas
 
 
+def testRbf(k1=1.3):
+    """
+    利用核函数进行分类的经向基测试函数
+
+    Parameters
+    -----------------
+    k1 : 使用高斯核函数时表示到达率
+
+    Returns
+    ---------------
+    None
+    """
+    # 加载训练集
+    dataArr, labelArr = loadDataSet('testSetRBF.txt')
+
+    b, alphas = smoP(dataArr, labelArr, 200, 0.0001, 100, ('rbf', k1))
+    dataMat = mat(dataArr)
+    labelMat = mat(labelArr).transpose()
+
+    # 获得支持向量
+    svInd = nonzero(alphas.A > 0)[0]
+    sVs = dataMat[svInd]
+    labelSV = labelMat[svInd]
+    print("支持向量个数: %d" % shape(sVs)[0])
+
+    m, n = shape(dataMat)
+    errorCount = 0
+
+    for i in range(m):
+        # 计算各个点的核
+        kernelEval = kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        # 根据支持向量的点计算超平面， 返回预测结果
+        predict = kernelEval.T * multiply(labelSV, alphas[svInd]) + b
+
+        if sign(predict) != sign(labelArr[i]):
+            errorCount += 1
+
+    print("训练集错误率: %.2f%%" % ((float(errorCount) / m) * 100))
+
+    # 加载测试集
+    dataArr, labelArr = loadDataSet('testSetRBF2.txt')
+
+    errorCount = 0
+    dataMat = mat(dataArr)
+    labelMat = mat(labelArr).transpose()
+    m, n = shape(dataMat)
+
+    for i in range(m):
+        kernelEval = kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        predict = kernelEval.T * multiply(labelSV, alphas[svInd]) + b
+
+        if sign(predict) != sign(labelArr[i]):
+            errorCount += 1
+
+    print("测试集错误率: %.2f%%" % ((float(errorCount) / m) * 100))
+
+    # 绘制数据集
+    showDataSet(dataArr, labelArr, alphas)
+
+
 def calcWs(alphas, dataArr, classLabels):
     """
     计算w
@@ -306,7 +423,7 @@ def calcWs(alphas, dataArr, classLabels):
     return w
 
 
-def showClassifier(dataMat, classLabels, w, b):
+def showClassifier(dataArr, classLabels, w, b):
     """
     分类结果可视化
 
@@ -324,11 +441,11 @@ def showClassifier(dataMat, classLabels, w, b):
     data_plus = []
     data_minus = []
 
-    for i in range(len(dataMat)):
+    for i in range(len(dataArr)):
         if classLabels[i] > 0:
-            data_plus.append(dataMat[i])
+            data_plus.append(dataArr[i])
         else:
-            data_minus.append(dataMat[i])
+            data_minus.append(dataArr[i])
 
     data_plus_np = array(data_plus)
     data_minus_np = array(data_minus)
@@ -338,8 +455,8 @@ def showClassifier(dataMat, classLabels, w, b):
     plt.scatter(transpose(data_minus_np)[0], transpose(data_minus_np)[1], s=30, alpha=0.7)
 
     # 绘制直线
-    x1 = max(dataMat)[0]
-    x2 = min(dataMat)[0]
+    x1 = max(dataArr)[0]
+    x2 = min(dataArr)[0]
     a1, a2 = w
     b = float(b)
     a1 = float(a1[0])
@@ -350,7 +467,44 @@ def showClassifier(dataMat, classLabels, w, b):
     # 标记支持向量点
     for i, alpha in enumerate(alphas):
         if (abs(alpha) > 0):
-            x, y = dataMat[i]
+            x, y = dataArr[i]
+            plt.scatter([x], [y], s=150, c='none', alpha=0.7,
+                        linewidth=1.5, edgecolors='red')
+
+    plt.show()
+
+
+def showDataSet(dataArr, classLabels, alphas):
+    """
+    数据可视化
+
+    Parameters
+    ---------------
+    dataMat : 数据矩阵
+    labelMat : 数据标签
+
+    Returns
+    ----------------
+    None
+    """
+    data_plus = []
+    data_minus = []
+
+    for i in range(len(dataArr)):
+        if classLabels[i] > 0:
+            data_plus.append(dataArr[i])
+        else:
+            data_minus.append(dataArr[i])
+
+    data_plus_np = array(data_plus)
+    data_minus_np = array(data_minus)
+
+    plt.scatter(transpose(data_plus_np)[0], transpose(data_plus_np)[1], s=30, alpha=0.7)
+    plt.scatter(transpose(data_minus_np)[0], transpose(data_minus_np)[1], s=30, alpha=0.7)
+
+    for i, alpha in enumerate(alphas):
+        if (abs(alpha) > 0):
+            x, y = dataArr[i]
             plt.scatter([x], [y], s=150, c='none', alpha=0.7,
                         linewidth=1.5, edgecolors='red')
 
@@ -358,7 +512,9 @@ def showClassifier(dataMat, classLabels, w, b):
 
 
 if __name__ == "__main__":
-    dataArr, classLabels = loadDataSet('testSet.txt')
-    b, alphas = smoP(dataArr, classLabels, 0.6, 0.001, 40)
-    w = calcWs(alphas, dataArr, classLabels)
-    showClassifier(dataArr, classLabels, w, b)
+    # dataArr, classLabels = loadDataSet('testSet.txt')
+    # b, alphas = smoP(dataArr, classLabels, 0.6, 0.001, 40)
+    # w = calcWs(alphas, dataArr, classLabels)
+    # showClassifier(dataArr, classLabels, w, b)
+
+    testRbf()
