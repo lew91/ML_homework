@@ -1,0 +1,32 @@
++ bagging: 基于数据随机重抽样的分类器
+自举汇聚法（bootstrap aggregating），也称为bagging方法，是在从原始数据集选择S次后得到S个新数据集的一种技术。
+新数据集和原始数据集的大小相等。每个数据集都是通过原始数据集中最集选择一个样本来进行替换而得到的。
+在S个数据集建好之后，将某个学习算法分别作用于每个数据集就得到了S个分类器。当我们要对新数据进行分类时，就可以应用
+这S个分类起进行分类。
+
++ boosting
+boosting是一种于bagging很类似的技术。不论是在boosting还是bagging当中，所使用的过个分类器的类型都是一致的。但是
+在前者当中，不同分类器是通过串行训练而获得的， 每个新分类器都根据已训练出的分类的性能进行训练。boosting是通过集中关注
+被已有分类器错分的那些数据来获得新的分类器。
+由于boosting分类的结果是基于所有分类器的加权求和结果的，因此boosting与bagging不太一样。bagging中的分类器权重是
+相等的，而boosting中的分类器权重并不相等，每个权重代表的是其对应分类器在上一轮迭代的成功度。
+
++ 基于错误提升分类器的性能
+AdaBoost是adaptive boosting（自适应boosting）的缩写。其运行过程如下：训练数据中的每个样本、并赋予其一个权重，这些
+权重过程了向量D。一开始，这些权重都初始化成相等值。首先在训练数据上训练出一个弱分类器并计算该分类器的错误率，然后在
+同一数据上再次训练弱分类器。在分类器的第二次训练当中，将会重新调整每个样本的权重，其中第一次分对的样本的权重将会降低，
+而第一次分错的样本的权重将会提高。为了从所有弱分类中得到最终的分类结果，AdaBoost为每个分类器都分配了一个权重值alpha,
+这些alpha值是基于每个弱分类器的错误率进行计算的。其中，错误率ε 的定义为：
+$$\epsilon = \frac{number of incorrectly classified examples}{total number of examples}$$
+and $\alpha$ is given by
+$$ \alpha = \frac{1}{2} ln(\frac{1-\epsilon}{\epsilon})$$
+
+After you calculate $\alpha$, you can update the weight vector $D$ so that the examples that are correctly
+classified will decrease in weight and the misclassified examples will increase in weight. $D$ is given by
+$$ D^{(t+1)}_i = \frac{D^{(t)}_i e^{-\alpha}}{Sum(D)}$$
+if correctly predicted and 
+$$$ $$$$ D^{(t+1)}_i = \frac{D^{(t)}_i e^{\alpha}}{Sum(D)}$$
+After $D$ is calculated, AdaBoost starts on the next iteration. The AdaBoost algorithm repeats the training
+and weight-adjusting iterations until the training error is 0 or until the number of weak classifiers reaches
+a user-defined value.
+
