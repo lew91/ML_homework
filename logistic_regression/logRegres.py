@@ -20,10 +20,23 @@ def sigmoid(inX):
 
 
 def gradAscent(dataMatIn, classLabels):
+    """
+    梯度上升法
+
+    Parameters
+    --------------
+    dataMatIn : 数据集
+    classLabels : 数据标签
+
+    Returns
+    -------------
+    weights.getA() : 权重数组（最优参数）
+    weights_array : 每次更新的回归系数
+    """
     dataMatrix = np.mat(dataMatIn)
     labelMat = np.mat(classLabels).transpose()
     m, n = np.shape(dataMatrix)
-    alpha = 0.01
+    alpha = 0.01   # 移动步长，学习速率
     maxCycles = 500
     weights = np.ones((n, 1))
     weights_array = np.array([])
@@ -37,6 +50,20 @@ def gradAscent(dataMatIn, classLabels):
 
 
 def stocGradAscent1(dataMatrix, classLabels, numIter=150):
+    """
+    改进随机的梯度上升法
+
+    Parameters
+    -----------------
+    dataMatrix : 数据数组
+    classLabels : 数据标签
+    numIter : 迭代次数
+
+    Returns
+    -------------
+    weights : 回归系数数组（最优参数）
+    weights_array : 每次更新的回归系数
+    """
     m, n = np.shape(dataMatrix)
     weights = np.ones(n)
     weights_array = np.array([])
@@ -74,6 +101,8 @@ def plotBestFit(weights):
     ax.scatter(xcord1, ycord1, s=30, c='red', marker='s', alpha=0.5)
     ax.scatter(xcord2, ycord2, s=30, c='green', alpha=0.5)
     x = np.arange(-3.0, 3.0, 0.1)
+    # w0 * x0 + w1 * x1 + w2 * x2 = 0
+    # x0 = 1, x1 = x, x2 = y 
     y = (-weights[0] - weights[1] * x) / weights[2]
     ax.plot(x, y)
     plt.xlabel('X1')
