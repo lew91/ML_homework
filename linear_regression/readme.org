@@ -1,0 +1,60 @@
++ Finding best-fit lines with linear regression
+How can we go from a bunch of data to our regression equation? Our input data is in the matrix X, and our regression weights in the vector w.
+for a given piece of data $X_1$ our predicted value is given by $y_1 = X^T_1 w$. We have the $Xs$ and $ys$, but how can we find the $ws$?
+One way is to find the $ws$ that minimize the error. We define error as the difference between predicted y and the actual y. Using just the 
+error will allow positive and negative values to cancel out, so we use the squared error.
+$$ \sum^m_{i=1} (y_i - X^T_i w)^2$$
+We can also write this in matrix notations as $(y-Xw)^T(y-Xw)$. If we take the derivative of this with respect to w, we'll get $X^T(y-Xw)$.
+We can set this to zero and solve for w to get the following equation:
+$$ \hat{w} = (X^T X)^{-1} X^T y $$
+
+
++  Locally weighted linear regression
+One problem with linear regression is that it tends to underfit the data. It gives us the lowest mean-squared error for unbiased estimators.
+With the model underfit, we aren't getting the best predictions. There are a numbers of ways to reduce this mean-squared error by adding some
+bias our estimator.
+One way to reduce the mean-squared error is a technique known as locally weighted linear regression (LWLR). In LWLR we give a weight to data
+points near our data point of interest; then we compute a least-squares regression. This type of regression uses the dataset each time  calculation
+is needed, similar to kNN. The solution is now given by
+$$ \hat{w} = (X^T W X)^{-1} X^T W y $$
+where $W$ is a matrix that's used to weight the data points.
+
+LWLR uses a kernel something like the kernels demonstrated in support vector machines to weight nearby points more heavily than other points.
+You can use any kernel you like. The most common kernel to use is a Gaussian. The kernel assigns a weight given by:
+$$ w(i,i) = exp (\frac{|x^{(i)} - x|}{-2 k^2})$$
+This builds the weight matrix $W$, which has only diagonal elements. The closer the data point $x$ is to the other points, the larger $w(i,i)$
+will be. There also is a user-defined constant $k$ that will determine how much to weight nearby points. This is the only parameter that we
+have to worry about with LWLR.
+
+
++ Ridge regression
+Ridge regression adds an additional matrix $\lambda I$ to the matrix $X^T X$ so that is's non-singular, and we can take the inverse of the
+whole thing: $X^T X + \lambda I$. The matrix $I$ is an $m \times m$ identity matrix where there are 1s in the diagonal elements and 0s
+elsewhere. The symbol $\lambda$ is a user-defined scalar value. The formula for estimating our coefficients is now:
+$$ \hat{w} = (X^T X + \lambda I)^{-1} X^T y $$
+
+Ridge regression was originally developed to deal with the problem of having more features than data points. But it can also use 
+the $\lambda$ value to impose a maximum value on the sum of all our $ws$ . By imposing this penalty, we can decrease unimportant
+parameters. This decreasing is known as /shrinkage/ in statistics.
+
++ The lasso
+It can be shown that the equation for ridge regression is the same as our regular least-squares regression and imposing the following 
+constraint:
+$$ \sum^n_{k=1} w^2_k \leq \lambda$$
+This means that the sum of the squares of all our weights has to be less than or equal to $\lambda$. When two or more of the features
+are correlated, we may have a very large positive weight and a very large negative weight using regular least-squares regression.
+By using ridge regression we're avoiding this problem because the weights are subject to the previous constraint.
+
+Similar to ridge regression, there's another shrinkage technique called the /lasso/. The lasso imposes a different constraint on the 
+weights:
+$$ \sum^n_{k=1} | w_k| \leq \lambda$$
+The only difference is that we're taking the absolute value instead of the square of all the weights. Using a slightly different constraint
+will give us different result. If $\lambda$ is small enough, some of the weights are forced to be exactly  0, which makes it easier
+to understand our data. The mathematical difference of the constraint may seem trivial, but it makes things a lot harder to solve.
+
+
++ Forward stagewise regression
+There's an easier  algorithm than the lasso that gives close result: stagewise linear regression. This algorithm is a greedy algorithm
+in that at each step it makes the decision that will reduce the error the most at that step. Initially, all the weights are set
+to 0. The decision that's made at each step is increasing or decreasing a weight by some small amount.
+
