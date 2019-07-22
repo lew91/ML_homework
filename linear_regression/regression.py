@@ -81,6 +81,40 @@ def lwlrTest(testArr, xArr, yArr, k=1.0):
     return yHat
 
 
+def ridgeRegres(xMat, yMat, lam=0.2):
+    """
+    岭回归
+    """
+    xTx = xMat.T * xMat
+    denom = xTx + eye(shape(xMat)[1]) * lam
+
+    if linalg.det(denom) == 0 :
+        print("This matrix is singular, cannot do inverse")
+        return
+
+    ws = denom.I * (xMat.T * yMat)
+    return ws
+
+
+def ridgeTest(xArr, yArr):
+    xMat = mat(xArr)
+    yMat = mat(yArr).T
+    yMean = mean(yMat, axis=0)
+    yMat = yMat - yMean
+    xMean = mean(xMat, axis=0)
+    xVar = var(xMat, axis=0)
+    xMat = (xMat - xMean) / xVar
+
+    numTestPts = 30
+    wMat = zeros((numTestPts, shape(xMat)[1]))
+
+    for i in range(numTestPts):
+        ws = ridgeRegres(xMat, yMat, exp(i - 10))
+        wMat[i, :] = ws.T
+
+    return wMat
+
+
 def plotDataSet():
     xArr, yArr = loadDataSet('ex0.txt')
     ws = standRegres(xArr, yArr)
