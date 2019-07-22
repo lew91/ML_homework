@@ -1,5 +1,6 @@
 
 from numpy import *
+import random
 import matplotlib.pyplot as plt
 
 
@@ -162,6 +163,53 @@ def stageWise(xArr, yArr, eps=0.01, numIt=100):
     return returnMat
 
 
+def crossValidation(xArr, yArr, numVal=10):
+    m = len(yArr)
+    indexList = list(range(m))
+    errorMat = zeros(numVal, 30)
+
+    for i in rage(numVal):
+        trainX = []
+        trainY = []
+        testX = []
+        testY = []
+
+        random.shuffle(indexList)
+        for j in range(m):
+            if j < m * 0.9:
+                trainX.append(xArr[indexList[j]])
+                trainY.append(yArr[indexList[j]])
+
+            else:
+                testX.append(xArr[indexList[j]])
+                testY.append(yArr[indexList[j]])
+
+        wMat = ridgeTest(trainX, trainY)
+        for k in range(30):
+            matTestX = mat(testX)
+            matTrainX = mat(trainX)
+
+            meanTrain = mean(matTrainX, axis=0)
+            varTrain = var(matTrainX, axis=0)
+            matTest = (matTestX - meanTrain) / varTrain
+
+            yEst = matTestX * mat(wMat[k, :]).T + mean(trainY)
+            errorMat[i, k] = rssError(yEst.T.A, array(testY))
+
+    meanErrors = mean(errorMat, axis=0)
+    minMean = float(min(meanErrors))
+    bestWeights = wMat[nonzero(meanErrors == minMean)]
+
+    xMat = mat(xArr)
+    yMat = mat(yArr).T
+    meanX = mean(xMat, axis=0)
+    varX = var(xMat, axis=0)
+    unReg = bestWeights / varX
+    print("%f%+f*年份%+f*部件数量%+f*是否为全新%+f*原价" %
+          ((-1 * np.sum(np.multiply(meanX, unReg)) + np.mean(yMat)),
+           unReg[0, 0], unReg[0, 1], unReg[0, 2], unReg[0, 3]))
+
+
 def plotDataSet():
     xArr, yArr = loadDataSet('ex0.txt')
     ws = standRegres(xArr, yArr)
@@ -177,7 +225,8 @@ def plotDataSet():
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    ax.scatter(xMat[:, 1].flatten().A[0], yMat.flatten().A[0], s=20, c='blue', alpha=0.5)
+    ax.scatter(xMat[:, 1].flatten().A[0], yMat.T.flatten().A[0],
+               s=20, c='blue', alpha=0.5)
     ax.plot(xCopy[:, 1], yHat)
     plt.show()
 
