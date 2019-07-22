@@ -21,6 +21,10 @@ def loadDataSet(filename):
     return xArr, yArr
 
 
+def rssError(yArr, yHatArr):
+    return ((yArr - yHatArr) ** 2).sum()
+
+
 def standRegres(xArr, yArr):
     """
     计算回归系数
