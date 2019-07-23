@@ -47,8 +47,8 @@ def randCent(dataSet, k):
     centroids = np.mat(np.zeros((k, n)))
 
     for j in range(n):
-        minJ = min(dataSet[:, j])
-        rangeJ = float(max(dataSet[:, j]) - minJ)
+        minJ = np.min(dataSet[:, j])
+        rangeJ = float(np.max(dataSet[:, j]) - minJ)
         centroids[:, j] = minJ + rangeJ * np.random.rand(k, 1)
 
     return centroids
@@ -118,8 +118,8 @@ def biKMeans(dataSet, k, distMeas=distEclud):
     """
     m = np.shape(dataSet)[0]
     clusterAssment = np.mat(np.zeros((m, 2)))
-    centroid0 = np.mean(dataSet, axis=0).tolist()[0]
-    centList = centroid0
+    centroid0 = np.mean(dataSet, axis=0).tolist()[0]  # 【0】 多此一举
+    centList = [centroid0]
 
     for j in range(m):
         clusterAssment[j, 1] = distMeas(np.mat(centroid0), dataSet[j, :]) ** 2
