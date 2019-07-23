@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def loadDataSet(filename):
     dataMat = []
     fr = open(filename)
 
     for line in fr.readlines():
-        curLine = line.strip().split('\t')
+        curLine = line.strip().split("\t")
         fltLine = list(map(float, curLine))
         dataMat.append(fltLine)
 
@@ -70,7 +71,7 @@ def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent):
     clusterAssment : 聚类误差
     """
     m = np.shape(dataSet)[0]
-    clusterAssment = np.mat(np.zeros((m, 2))) # 一列存储簇索引值，第二列存储误差
+    clusterAssment = np.mat(np.zeros((m, 2)))  # 一列存储簇索引值，第二列存储误差
     centroids = createCent(dataSet, k)
 
     clusterChanged = True
@@ -79,7 +80,7 @@ def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent):
         clusterChanged = False
 
         for i in range(m):
-            minDist = float('inf')
+            minDist = float("inf")
             minIndex = -1
 
             for j in range(k):
@@ -98,6 +99,64 @@ def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent):
         centroids[cent, :] = np.mean(ptsInClust, axis=0)
 
     return centroids, clusterAssment
+
+
+def biKMeans(dataSet, k, distMeas=distEclud):
+    """
+    二分k-means聚类算法
+
+    Parameters
+    --------
+    dataSet : 用于聚类的数据集
+    k : 选择k个质心
+    distMeas : 距离计算方法
+
+    Returns
+    ----------
+    centList : k个聚类的聚类结果
+    clusterAsssment : 聚类误差
+    """
+    m = np.shape(dataSet)[0]
+    clusterAssment = np.mat(np.zeros((m, 2)))
+    centroid0 = np.mean(dataSet, axis=0).tolist()[0]
+    centList = centroid0
+
+    for j in range(m):
+        clusterAssment[j, 1] = distMeas(np.mat(centroid0), dataSet[j, :]) ** 2
+
+    while len(centList) < k:
+        lowerSSE = float("inf")
+
+        for i in range(len(centList)):
+            ptsInCurrCluster = dataSet[np.nonzero(clusterAssment[:, 0].A == i)[0], :]
+            centroidMat, splitClusterAss = kMeans(ptsInCurrCluster, 2, distMeas)
+
+            sseSplit = np.sum(splitClusterAss[:, 1])
+            sseNotSplit = np.sum(
+                clusterAssment[np.nonzero(clusterAssment[:, 0].A != i)[0], 1]
+            )
+            print("ssesplit = %f, and notSplit = %f" % (sseSplit, sseNotSplit))
+
+            if (sseSplit + sseNotSplit) < lowerSSE:
+                bestCentToSplit = i
+                bestNewCents = centroidMat
+                bestClustAss = splitClusterAss.copy()
+                lowerSSE = sseSplit + sseNotSplit
+
+        bestClustAss[np.nonzero(bestClustAss[:, 0].A == 1)[0], 0] = len(centList)
+        bestClustAss[np.nonzero(bestClustAss[:, 0].A == 0)[0], 0] = bestCentToSplit
+
+        print("the bestCenttosplit is %d" % bestCentToSplit)
+        print("the len of bestClustass is %d" % len(bestClustAss))
+
+        centList[bestCentToSplit] = bestNewCents[0, :]
+        centList.append(bestNewCents[1, :])
+
+        clusterAssment[
+            np.nonzero(clusterAssment[:, 0].A == bestCentToSplit)[0], :
+        ] = bestClustAss
+
+    return centList, clusterAssment
 
 
 def plotDataSet(filename):
@@ -126,16 +185,23 @@ def plotDataSet(filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    ax.scatter(xcord[0], ycord[0], s=20, c='b', marker='*', alpha=.5)
-    ax.scatter(xcord[1], ycord[1], s=20, c='r', marker='D', alpha=.5)
-    ax.scatter(xcord[2], ycord[2], s=20, c='c', marker='>', alpha=.5)
-    ax.scatter(xcord[3], ycord[3], s=20, c='k', marker='o', alpha=.5)
+    ax.scatter(xcord[0], ycord[0], s=20, c="b", marker="*", alpha=0.5)
+    ax.scatter(xcord[1], ycord[1], s=20, c="r", marker="D", alpha=0.5)
+    ax.scatter(xcord[2], ycord[2], s=20, c="c", marker=">", alpha=0.5)
+    ax.scatter(xcord[3], ycord[3], s=20, c="k", marker="o", alpha=0.5)
 
-    ax.scatter(myCentroids[0][0], myCentroids[0][1], s=100, c='k', marker='+', alpha=.5)
-    ax.scatter(myCentroids[1][0], myCentroids[1][1], s=100, c='k', marker='+', alpha=.5)
-    ax.scatter(myCentroids[2][0], myCentroids[2][1], s=100, c='k', marker='+', alpha=.5)
-    ax.scatter(myCentroids[3][0], myCentroids[3][1], s=100, c='k', marker='+', alpha=.5)
-    plt.title('DataSet')
-    plt.xlabel('X')
+    ax.scatter(
+        myCentroids[0][0], myCentroids[0][1], s=100, c="k", marker="+", alpha=0.5
+    )
+    ax.scatter(
+        myCentroids[1][0], myCentroids[1][1], s=100, c="k", marker="+", alpha=0.5
+    )
+    ax.scatter(
+        myCentroids[2][0], myCentroids[2][1], s=100, c="k", marker="+", alpha=0.5
+    )
+    ax.scatter(
+        myCentroids[3][0], myCentroids[3][1], s=100, c="k", marker="+", alpha=0.5
+    )
+    plt.title("DataSet")
+    plt.xlabel("X")
     plt.show()
-
