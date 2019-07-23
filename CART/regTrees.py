@@ -1,4 +1,4 @@
-from numpy import *
+from numpy import power, zeros, mat, nonzero, mean, var, shape, ones, linalg
 
 
 def loadDataSet(filename):
@@ -30,6 +30,17 @@ def regErr(dataSet):
 def linearSolve(dataSet):
     """
     模型树的节点生成函数
+
+    Parameters
+    ------------
+    dataSet : 数据集
+    X第一列为1是偏移量
+
+    Returns
+    -------------
+    ws : 最佳回归系数
+    X : 特征矩阵
+    Y : label列向量
     """
     m, n = shape(dataSet)
     X = mat(ones((m, n)))
@@ -58,6 +69,95 @@ def modelErr(dataSet):
     yHat = X * ws
 
     return sum(power(Y - yHat, 2))
+
+
+def regTreeEval(model, inDat):
+    """
+    返回回归树叶节点值
+
+    Parameters
+    -----------
+    model : tree叶节点
+    inDat : 输入数据
+
+    Returns
+    --------------
+    叶节点值
+    """
+    return float(model)
+
+
+def modelTreeEval(model, inDat):
+    """
+    模型树
+
+    Parameters
+    ----------
+    model : 叶节点值
+    inDat : 输入的特征矩阵
+
+    Returns
+    -----------
+    预测值， 相当于 X * ws
+    """
+    n = shape(inDat)[1]
+    X = mat(ones(1, n + 1))
+    X[:, 1:n+1] = inDat
+    return float(X * model)
+
+
+def treeForeCast(tree, inData, modelEval=regTreeEval):
+    """
+    对输入的单个数据点，返回一个预测值
+
+    Parameters
+    ----------------
+    tree : 树结构
+    testData : 预测数据集
+    modelEval : 求解方式
+
+    Returns
+    --------------
+    误差值
+    """
+    if not isTree(tree):
+        return modelEval(tree, inData)
+
+    if inData[tree['spInd']] > tree['spVal']:
+        if isTree(tree['left']):
+            return treeForeCast(tree['left'], inData, modelEval)
+        else:
+            return modelEval(tree['left'], inData)
+
+    else:
+        if isTree(tree['right']):
+            return treeForeCast(tree['right'], inData, modelEval)
+        else:
+            return modelEval(tree['right'], inData)
+
+
+def createForeCast(tree, testData, modelEval=regTreeEval):
+    """
+    对数据进行性树结构建模
+
+    Parameters
+    ----------------
+    tree : 树结构
+    testData : 测试数据集
+    modelEval : 求解方式
+
+
+    Returns
+    ------------------
+    yHat : 预测值
+    """
+    m = len(testData)
+    yHat = mat(zeros((m, 1)))
+
+    for i in range(m):
+        yHat[i, 0] = treeForeCast(tree, mat(testData[i]), modelEval)
+
+    return yHat
 
 
 def chooseBestSplit(dataSet, leafType=regLeaf, errType=regErr, ops=(1, 4)):
