@@ -27,6 +27,39 @@ def regErr(dataSet):
     return var(dataSet[:, -1]) * shape(dataSet)[0]
 
 
+def linearSolve(dataSet):
+    """
+    模型树的节点生成函数
+    """
+    m, n = shape(dataSet)
+    X = mat(ones((m, n)))
+    Y = mat(ones((m, 1)))
+    X[:, 1:n] = dataSet[:, 0:n-1]
+    Y = dataSet[:, -1]
+    xTx = X.T * X
+
+    if linalg.det(xTx) == 0:
+        raise NameError("This matrix is singular, cannot do inverse, tryincreasing the seconed value of ops")
+
+    ws = xTx.T * (X.T * Y)
+    return ws, X, Y
+
+
+def modelLeaf(dataSet):
+    """
+    返回数据集的回归系数
+    """
+    ws, X, Y = linearSolve(dataSet)
+    return ws
+
+
+def modelErr(dataSet):
+    ws, X, Y = linearSolve(dataSet)
+    yHat = X * ws
+
+    return sum(power(Y - yHat, 2))
+
+
 def chooseBestSplit(dataSet, leafType=regLeaf, errType=regErr, ops=(1, 4)):
     """
     找到数据的最佳二元切分方式
