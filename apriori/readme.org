@@ -1,0 +1,44 @@
++ 关联分析
+关联分析是一种在大规模数据集中寻找有趣关系的任务。这额关系可以有两种形式：频繁项集或者关联规则。
+频繁项集(frequent item sets)是经常出现在一块的物品的集合，关联规则(association rules)暗示两种物品之间
+可能存在很强的关系。
+
+杂货店交易清单
+| 交易号码 | 商品                     |
+|        0 | 豆奶，莴笋               |
+|        1 | 莴笋，尿布，葡萄酒，甜菜 |
+|        2 | 豆奶，尿布，葡萄酒，橙汁 |
+|        3 | 莴笋，豆奶，尿布，葡萄酒 |
+|        4 | 莴笋，豆奶，尿布，橙汁   |
+
+如何定义这些有趣的关系？谁来定义什么是有趣？当寻找频繁项集时，频繁(frequent)的定义是什么？有许多概念可以
+解答上述问题，不过其中最重要的是支持度和可信度。
+
+一个项集的支持度(support)被定义为数据集中包含该项集的记录所占的比例。例如「豆奶」的支持度为4/5.而在5条记录中有3条包含
+「豆奶，尿」，因此「豆奶，尿布」的支持度为3/5.支持度是对项集来说的，因此可以定一个最小支持度，而只保留满足
+最小支持度的项集。
+
+可信度或置信度(confidence)是针对一条诸如「尿布」->「葡萄酒」的关联规则来定义的。这条规则的可信度被定义为
+“支持度（「尿布，葡萄酒」）/ 支持度（「尿布」）”。从表可以看到，由于「尿布，葡萄酒」的支持度为3/5，尿布的支持度为4/5，
+所以“尿布-> 葡萄酒”的可信度为3/4 = 0.75。这意味着对于包含“尿布”的所有记录，我们的规则对其中75%的记录都适用。
+
+
++ Apriori原理
+为了降低所需的计算时间，研究人员发现一种所谓的Apriori原理。Apriori原理可以帮助我们减少可能感兴趣的项集。Apriori原理
+是说如果某个项集是频繁的，那么它的所有子集也是频繁的。
+反过来，如果一个项集是非频繁集，那么它的所有超集也是非频繁的。
+
+
++ Apriori算法
+Pseudocode for scanning the dataset would look like this:
+/For each tansaction in tran the dataset:/
+/For each candidate itemset, can:/
+    /Check to see if can is a subset of tran/
+    /if so increment the count of can/
+/For each candidate itemset:/
+/If the support meets the minimum, keep this item/
+/Return list of frequent itemsets/
+
+
+
+
