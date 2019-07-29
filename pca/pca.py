@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def loadDataSet(filename, delim='\t'):
@@ -47,8 +48,16 @@ def pca(dataMat, topNfeat=9999999):
     return lowDDataMat, reconMat
 
 
-def replaceNanWithMean():
-    datMat = loadDataSet('secom.data', ' ')
+def showPlot(dataMat, reconMat):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter(dataMat[:,0].flatten().A[0], dataMat[:,1].flatten().A[0],marker='^', s=90, c='blue')
+    ax.scatter(reconMat[:,0].flatten().A[0], reconMat[:,1].flatten().A[0], marker='o', s=50, c='red')
+    plt.show()
+
+
+def replaceNanWithMean(filename):
+    datMat = loadDataSet(filename, ' ')
     numFeat = np.shape(datMat)[1]
 
     for i in range(numFeat):
@@ -56,3 +65,10 @@ def replaceNanWithMean():
         datMat[np.nonzero(np.isnan(datMat[:, i].A))[0], i] = meanVal
 
     return datMat
+
+
+if __name__ == '__main__':
+    filename = 'secom.data'
+    dataMat = replaceNanWithMean(filename)
+    lowDMat, reconMat = pcs(dataMat, 1)
+    showPlot(dataMat, reconMat)
