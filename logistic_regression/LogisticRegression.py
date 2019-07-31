@@ -54,7 +54,7 @@ class LogisticRegression:
         N, M = X.shape
         order = 2 if self.penalty == "l2" else 1
         nll = -np.log(y_pred[y==1]).sum() - np.log(1- y_pred[y==0]).sum()
-        penalty = 0.5 * self.gamma * np.linalg.norm(self.betaa, ord=order) ** 2
+        penalty = 0.5 * self.gamma * np.linalg.norm(self.beta, ord=order) ** 2
         return (penalty + nll) / N
 
     def _NLL_grad(self, X, y, y_pred):
