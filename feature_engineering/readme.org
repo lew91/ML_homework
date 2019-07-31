@@ -84,11 +84,12 @@ X_test_std = stdsc.transform(X_test)
 
 * Feature selection
 ** Univariate statistics
-The simplest method to select features is using univariate statistics, that is by looking at each feature individually and running a statistical test to see whether it is related to the target.
+The simplest method to select features is using univariate statistics, that is by looking at each feature 
+individually and running a statistical test to see whether it is related to the target.
 
 Univariate statistics in sklearn:
-+ for regression: f_regression
-+ for classification: chi2 or f_classif 
++ for regression: [[https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.f_regression.html#sklearn.feature_selection.f_regression][f_regression]]
++ for classification: [[https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.chi2.html#sklearn.feature_selection.chi2][chi2]] or [[https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.f_classif.html#sklearn.feature_selection.f_classif][f_classif]] 
 
 Once we got the statistics and p-value, we have those choose:
 + SelectKBest: removes all but the k highest scoring features
@@ -96,8 +97,21 @@ Once we got the statistics and p-value, we have those choose:
 + GenericUnivariateSelect: allows to perform univariate feature selection with a configurable strategy. This allows to select the best univariate selection strategy with hyper-parameter search estimator.
 + using common univariate statistical tests for each feature: false positive rate SelectFpr, false discovery rate SelectFdr, or family wise error SelectFwe.
 
+#+BEGIN_SRC python :results output
+  from sklearn.feature_selection import chi2
+  from sklearn.feature_selection import SelectKBest
+
+  select = SelectKBest(chi2, k=6)
+  X_uni_selected = select.fit_transform(X,train, y_train)
+#+END_SRC
 ** Recursive feature elimination
-using common univariate statistical tests for each feature: false positive rate SelectFpr, false discovery rate SelectFdr, or family wise error SelectFwe.
+Given an external estimator that assigns weights to features (e.g., the coefficients of a 
+linear model), recursive feature elimination (RFE) is to select features by recursively 
+considering smaller and smaller sets of features. First, the estimator is trained on the 
+initial set of features and weights are assigned to each one of them. Then, features whose 
+absolute weights are the smallest are pruned from the current set features. That procedure 
+is recursively repeated on the pruned set until the desired number of features to select is 
+eventually reached.
 #+BEGIN_SRC python :results output
 from sklearn.feature_selection import RFE
 from sklearn.svm import SVC
@@ -141,11 +155,6 @@ L1 norm: $||w||_1 = \sum^m_{j=1} |w_j|$
   model_l1 = SelectFromModel(lr, threshold='median', prefit=True)
   X_l1_selected = model_l1.transform(X)
 #+END_SRC
-
-
-
-
-
 
 
 ** Tree-based feature selection
@@ -198,4 +207,16 @@ mask = select.get_support()
 plt.matshow(mask.reshape(1, -1), cmap='gray_r');
 #+END_SRC
 * Feature extraction
+Unsupervised dimensionality reduction via principal component analysis
+Summarize PCA algorithm:
+1.Standardize the d-dimensional dataset.
+2.Construct the covariance matrix.
+3.Decompose the covariance matrix into its egienvectors and eigenvalues.
+4.Select k eigenvectors that correspond to the k largest eigenvalues, where k is the dimensionality
+of the new feature subspace. (k <= d)
+5.Construct a projectin matrix W from the "top" k eigenvectors
+6.Transform the d-dimensional input dataset X using the projection matrix W to obtain the new 
+k-dimensional feature subspace.
+
+
 
