@@ -15,13 +15,13 @@ class LogisticRegression:
         gamma : float in [0, 1] (default: 0)
         The regularization weight. larger values correspond to larger
         regularization penalties, and a value of 0 indicates no penalty.
-        
+
         fit_intercept : bool (default: True)
         whether to fit an intercept term in addition to the coefficients in
         b. If ture, the estimates for 'beat' will have M+1 dimensions,
         where the first dimension on corresponds to the  intercept.
         """
-        err_msg = "penalty must be "l1" or "l2", but got: {}".format(penalty)
+        err_msg = "penalty must be 'l1' or 'l2', but got: {}".format(penalty)
         assert penalty in ["l2", "l1"], err_msg
         self.beta = None
         self.gamma = gamma
@@ -76,6 +76,6 @@ class LogisticRegression:
 
         return sigmoid(np.dot(X, self.beta))
 
-    
+
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
