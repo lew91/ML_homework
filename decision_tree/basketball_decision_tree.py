@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 # Data from http://www.basketball-reference.com/leagues/NBA_2016_games.html
 data_filename = "basketball.csv"
-dataset = pd.read_csv(data_filename, parse_dates=['Data'])
+dataset = pd.read_csv(data_filename, parse_dates=['Date'])
 dataset.columns = ['Date', 'Start (ET)', 'Visitor Team', 'VisitorPts',
                    'Home Team', 'HomePts', 'OT', 'Score Type', 'Attend',
                    'Notes']
@@ -38,13 +38,11 @@ dataset['HomeLastWin'] = 0
 dataset['VisitorLastWin'] = 0
 
 for index, row in dataset.iterrows():
-    home_team = dataset['Home Team']
-    visitor_team = dataset['Visitor Team']
-    row['HomeLastWin'] = won_last[Home_team]
-    row['VisitorLastWin'] = won_last[visitor_team]
+    home_team = row['Home Team']
+    visitor_team = row['Visitor Team']
+    row['HomeLastWin'] = won_last[home_team]
     dataset.set_value(index, 'HomeLastWin', won_last[home_team])
     dataset.set_value(index, 'VisitorLastWin', won_last[visitor_team])
-    
     won_last[home_team] = int(row['HomeWin'])
     won_last[visitor_team] = 1 - int(row['HomeWin'])
 
