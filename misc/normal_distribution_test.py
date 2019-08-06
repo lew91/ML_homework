@@ -1,3 +1,12 @@
+"""
+Normal distribution test.
+
+Q-Q plot:
+For a standard normal distribution, the quantiles $q_{(j)}$ are defined by
+the ralation
+$$P[Z \leq q_{(j)}] = \int^{q_{(j)}}_{-\infty} \frac{1}{\sqrt{2\pi}} e^{-z^2/2} \text{d}z =
+p_{(j)} = \frac{j- \frac{1}{2}}{n}$$
+"""
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
