@@ -20,10 +20,10 @@ class Perceptron(object):
         return self
 
     def net_input(self, X):
-        return dot(X, self.w_[1]) + self.w_[0]
+        return dot(X, self.w_[1:]) + self.w_[0]
 
     def predict(self, X):
         return where(self.net_input(X) >=0.0, 1, -1)
 
 
-    
+
