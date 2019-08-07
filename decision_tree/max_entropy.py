@@ -1,8 +1,17 @@
 """
 Max entropy algorithm
 
+improved iterative scaling, IIS
+
 $$H(P) = - \sum_{x} p(x) log p(x)$$, where the entropy  corresponded to
 0<= H(P) <= log |X|
+
+最大熵模型
+P_w(y|x) = exp(\sum^n_{i=1} w_i * f_i(x,y)) / Z_w(x)
+其中，
+Z_w(x) = \sum_{y} exp(\sum^n_{i=1} w_i * f_i(x, y))
+对数似然函数为
+L(w) = \sum_{x,y} \tilde{P}(x,y) \sum^n_{i=1} w_i * f_i(x,y) - \sum_{x} \tilde{P}(x) log Z_w(x)
 """
 import math
 import copy
