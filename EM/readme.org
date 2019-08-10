@@ -1,0 +1,97 @@
+* GMM
+** 《统计学习方法》引用
++ 高斯混合模型
+高斯混合模型是指具有如下形式的概率分布模型：
+$$ P(y | \theta) = \sum^K_{k=1} \alpha_k\phi (y | \theta_k)$$
+其中， $\alpha_k$ 是系数， $\alpha_k \geq 0$, $\sum^K_{k=1}\alpha_k = 1$ ; $\phi(y |\theta_k)$ 是高斯分布密度， $\theta_k = (\mu_k, \sigma^2_k)$
+
+$$\phi(y|\theta) = \frac{1}{\sqrt{2\pi}\sigma_k} \text{exp}\left(- \frac{(y -\mu_k)^2}{2\sigma^2_k}\right)$$
+称为第k个分模型。
+
++ 高斯混合模型参数估计的EM算法
+假设观察数据 $y_1,y_2,\cdots,y_N$ 由高斯混合模型生成，
+$$P(y |\theta) = \sum^K{k=1}\alpha_k \phi(y|\theta)$$
+其中，$\theta=(\alpha_1,\alpha_2,\cdots,\alpha_K; \theta_1,\theta_2,\cdots,\theta_K)$。 用EM算法估计高斯混合模型的参数 $\theta$ .
+
+1. 明确隐变量，写出完全数据的对数似然函数
+可以设想观测数据 $y_j$, j=1,2,...,N, 是这样产生的：首先依概率 $\alpha_k$ 选择第k个高斯分布模型 $\phi(y|\theta)$ ；
+然后依第k个分模型的概率分布 $\phi(y|\theta)$ 生成观测数据 $y_j$ 。这是观测数据 $y_i$ , j=1,2,...,N, 是已知的； 反映观测数据
+$y_i$ 来自第k个分模型的数据是未知的， k=1,2,...,K, 以隐变量 $\gamma_{jk}$ 表示，其定义如下：
+
+$$\gamma_{jk} = \{ \begin{cases} 1 & 第j个观测来自第k个分模型 \\ 0 & 否则 \end{cases} \right }$$
+j=1,2,...,N ; k=1,2,...,K;
+$\gamma_{jk}$ 是 0-1 随机变量。
+
+有了观测数据 $y_j$ 及未观测数据 $\gamma_{jk}$ , 那么完全数据是
+$$(y_j, \gamma_{j1}, \gamma_{j2}, \cdots, \gamma_{jK})$$
+j=1,2,...,N
+
+于是，可以写出完全数据的对数的似然函数：
+$$ P(y,\gamma | \theta) = \prod^N_{j=1} P(y_j, \gamma_{j1},\gamma_{j2},\cdots,\gamma_{jK} | \theta)$$
+$$ = \prod^K_{k=1} \prod^N_{j=1} \left[ \alpha_k \phi(y_j | \theta_k)\right]^{\gamma_{jk}}$$
+$$=\prod^{K}_{k=1}\alpha^{n_k}_k \prod^N_{j=1}\left[\phi(y_j | \theta_k)\right]^{\gamma_{jk}}$$
+
+
+$$ = \prod^{K}_{k=1}\alpha^{n_k}_k \prod^{N}_{j=1} \left[ \frac{1}{\sqrt{2\pi}\sigma_k} \text{exp}(\frac{(y_j-\mu_k)^2}{2\sigma^2})\right]^{\gamma_{jk}}$$
+
+其中，
+$n_k= \sum^N_{j=1}\gamma_{jk}$, $\sum^K_{k=1}n_k= N$
+
+那么，完全的数据对数似然函数为
+$$ \text{log} P(y,\gamma |\theta) = \sum^K_{k=1} n_k \text{log} \alpha_k + 
+\sum^N_{j=1}\gamma_{jk}\left[\text{log}(\frac{1}{\sqrt{2\pi}}) - \text{log}\sigma_k - \frac{1}{2\sigma^2_k}(y_j-\mu_k)^2 \right]$$
+
+** log Gaussian PDF
+高斯混合模型log似然函数估计
+$\log N(x_i |\mu, \sigma)$ compute
+#+BEGIN_SRC python :results output
+  def log_gaussian_pdf(x_i, mu, sigma):
+      """
+      Compute log N(x_i | mu, sigma)
+      """
+      n = len(mu)
+      a = n * np.log(2 * np.pi)
+      _, b = np.linalg.slogdet(sigma)
+
+      y = np.linalg.solve(sigma, x_i - mu)
+      c = np.dot(x_i - mu, y)
+      return -0.5 * (a + b + c)
+#+END_SRC
+
+
+
+* The Log Sum Exp Trick
+ref from http://bayesjumping.net/log-sum-exp-trick/
+
+In machine learning, arithmetic underflow can become a problem when multiplying together many small probabilities. 
+In many models it can be useful to calculate the log sum of exponentials.
+
+$$\log \sum_{i = 1}^n \exp (x_{i})$$
+
+
+If $x_i$ is sufficiently large or small, this will result in an arithmetic overflow/underflow. To avoid this we can use 
+a common trick called the Log Sum Exponential trick.
+
+$$\begin{align} \log \sum_{i = 1}^n \exp (x_{i}) & = \log \exp(b) \sum_{i = 1}^n \exp (x_{i} - b) \\ & = b + \log \sum_{i = 1}^n \exp (x_{i} - b) \end{align}$$
+
+where $b$ is max(x).
+
+We can calculate this in Python with
+#+BEGIN_SRC python :results output
+  def logsumexp(log_probs, axis=None):
+      _max = np.max(log_probs)
+      ds = log_probs - _max
+      exp_sum = np.exp(ds).sum(axis=axis)
+      return _max + np.log(exp_sum)
+#+END_SRC
+
+or using SciPy
+#+BEGIN_SRC python
+from scipy.special import logsumexp
+logsumexp(ns)
+#+END_SRC
+
+
+
+
+
