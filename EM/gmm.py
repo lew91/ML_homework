@@ -30,7 +30,7 @@ class GMM(object):
         rr = np.random.randn(C)
 
         self.pi = rr / rr.sum() # cluster priors
-        self.Q = np.zeros(self.N, C)  # variational distribution q(T)
+        self.Q = np.zeros((self.N, C))  # variational distribution q(T)
         self.mu = np.random.uniform(-5, 10, C * d).reshape(C, d)   # cluster means
         self.sigma =  np.array([np.identity(d) for _ in range(C)])  # cluster covariances
 
