@@ -58,8 +58,8 @@ class GMM(object):
                 sigma_k = self.sigma[c, :, :]
 
                 log_pi_k = np.log(pi_k + eps)
-                lgo_p_x_i = log_gaussian_pdf(x_i, mu_k, sigma_k)
-                prob = z_nk * (log_pi_k + log_pi_k)
+                log_p_x_i = log_gaussian_pdf(x_i, mu_k, sigma_k)
+                prob = z_nk * (log_pi_k + log_p_x_i)
 
                 expec1 += prob
                 expec2 += z_nk * np.log(z_nk + eps)
@@ -142,7 +142,7 @@ class GMM(object):
             # log \sum_c exp{ log N(X_i | mu_c , Sigma_c) + log pi_c} ]
             log_denom = logsumexp(denom_vals)
             q_i = np.exp([num - log_denom for num in denom_vals])
-            assert_allclose(np.sum(q_i), 1, err_msg="{}".format(np.sum(q_i)))
+            assert_allclose(np.sum(q_i), 1, err_msg="{}".format(np.sum(q_i)))  # assert \sum^N_{i=0} q_i = 1 , condition
 
             self.Q[i, :] = q_i
 
