@@ -89,3 +89,19 @@ $$ \displaystyle w(j):=w(j)+{\alpha (y-f(x))}{x(j)}\quad (j=1,\ldots ,n) $$
           """
           return np.where(self.net_input(X) >= 0.0, 1, -1)
 #+END_SRC
+
+* 梯度上升法
+梯度上升基于的思想是：要找到某函数的最大值，最好的方法是沿着该函数的梯度方向搜寻。如果梯度记作 $\nabla$ ,则函数 $f(x,y)的梯度有下式表示：
+
+$$ \nabla f(x,y)= \left(\begin{align} \frac{\partial f(x,y)}{\partial x} \\
+                                      \frac{\partial f(x,y)}{\partial y}\end{align}\right)$$
+
+这个梯度意味着沿x的方向移动 $\frac{\partial f(x,y)}{\partial x}$ , 沿y的方向移动 $\frac{\partial f(x,y)}{\partial y}$ 。
+
+用向量来表示的话、梯度算法的迭代公式如下：
+
+$$ w:= w +\alpha \nabla_w f(w)$$
+其中
+$\alpha$ 表示移动的步长。
+
+该公式将一直被迭代执行，直至达到某个停止条件为止，比如迭代次数达到某个指定值或算法达到某个可以允许的误差范围。
