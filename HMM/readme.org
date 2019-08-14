@@ -1,3 +1,22 @@
+* 大量小概率相乘导致浮点数下溢问题
+在机器学习中，许多模型使用 log sum的算式
+$$ \log \sum^N_{i=1} exp (x_i)$$
+如果 $x_i$ 是一些大或小的浮点数，可能会导致算术上溢或下溢的问题。为了避免这个问题，可以采用一种的称为 log sum exponential的技巧
+$$ \log \sum^n_{i=1} \exp (x_i) = \log \exp (b) \sum^n_{i=1} \exp (x_i - b) = b + \log \sum^n_{i=1}\exp (x_i -b)$$
+其中
+$b = max (x)$
+
+
+在Viterbi算法中只涉及乘法运算和求最大值问题，因此，可以对概率相乘的算式取对数运算，使乘法运算变成加法运算，这样一方面避免了浮点数
+下溢的问题，另一方面，提高了运算速度。
+在前向后向算法中，也经常采用如下对数运算的方法判断参数 $\pi, a_{ij}, b_j(k)$ 是否收敛。
+
+$$ |\log P(O\mid \mu_{i+1}) - \log P(O \mid \mu_i)| < \varepsilon$$
+
+其中，$\varepsilon$ 为一个足够小的实数值。但是，在前向后向算法中执行EM计算时有加法运算，这就使得EM计算中无法采用对数运算，在这种情况
+下，可以设置一个辅助的比例系数，将概率值乘以这个比例系数以放大概率值，避免浮点下溢。在每次迭代结束重新估计参数时，再将比列系数取消。
+
+
 * 隐马尔可夫模型(hidden Morkov Model, HMM)
 ** 马尔可夫链
 随机过程又称随机函数，是随时间而随机变化的过程。马尔可夫模型(Morkov model)描述了一类重要的随机过程。
@@ -29,4 +48,311 @@ $\sum^N_{i=1}a_{ij} = 1$
 $$P(q_1,q_2,\cdots,q_T) = P(q_1)P(q_2 | q_1)P(q_3 |q_1,q_2)\cdots P(q_T | q_1,q_2,\cdots,q_{T-1})$$
 $$ = P(q_1)P(q_2|q_1)P(q_3|q_2)\cdots P(q_T |  q_{T-1})$$
 $$ = \pi_{q_1}\prod^{T-1}_{t=1} a_{q_t q_{t+1}}$$
+
+** 隐马尔可夫模型的构成
+HMM由如下几个部分组成：
++ 模型中状态的数目N
++ 从每个状态可能输出的不同符号的数目M
++ 状态转移概率矩阵 $A=\{a_{ij}\}$
+  其中
+  $a_{ij} = P(q_t = s_j | q_{t-1} = s_i), 1\leq i, j\leq N$
+$a_{ij} \geq 0$
+$\sum^N_{j=1} a_{ij} = 1$ 
++ 从状态 $s_j$ 观察到符号 $v_k$ 的概率分布举证 $B=\{b_j(k)\}$
+  其中 
+  $b_j(k) = P(O_t = u_k | q_t = s_j), 1 \leq j \leq N; 1\leq k \leq M$
+  $b_j(k) \geq 0$
+  $\sum^M_{k=1}b_j(k) = 1$
+  观察符号的概率又称符号发射概率(symbol emission probability)
++ 初始状态概率分布 $\pi = \{\pi\}$ , 
+  其中
+  $\pi_i = P(q_1 = s_i), 1\leq i \leq N$
+  $\pi_i \geq 0$
+  $\sum^N_{i=1} \pi_i =1$
+
+
+** Baum-Welch/Forward-Backward algorithm, 前向后向算法
+给定一个观察序列 $O=O_1O_2\cdots O_T$ 和模型 $\mu=(A,B,\pi)$ ,要快速地计算出给定模型 $\mu$ 情况下观察序列O的概率，
+即 $P(O|\mu)$ 。这就是解码(decoding)问题。
+
+对于任意的状态序列 $Q=q_1, q_2, \cdots, q_T$ , 有
+
+$$ P(O | Q,\mu)= \prod^T_{t=1} P(O_t | q_t, q_{t+1},\mu) = b_{q_1}(O_1) \times b_{q_2}(O_2) \times \cdots b_{q_T}(O_T)$$
+并且 
+$$P(Q | \mu) = \pi_{q_1} a_{q_1 q_2} a_{q_2 q_3}\cdots a_{q_{T-1} q_T}$$
+由于 
+$$ P(O,Q | \mu) = P(O |Q, \mu)P(Q|\mu)$$
+
+因此 
+$$ P(O|\mu) = \sum_{Q} P(O,Q|\mu) = \sum_{Q} P(O|Q,\mu)P(Q|\mu) = \sum_{Q}\pi_{q_1}\prod^T_{t=1}a_{q_{t-1} q_t} b_{q_t}(O_t)$$
+上述推导方式很直接，但面临一个很大的困难是，必须穷尽所有可能的状态序列。如果模型 $\mu=(A,B,\pi)$ 中有N个不同的状态，时间
+长度为T，那么，有 $N^T$ 个可能的状态序列。这样，计算量会出现“指数爆炸”。当T很大时，几乎不可能有效的执行算法。为此，人们
+提出了前向算法或前向计算过程(forward procedure),利用动态规划的方法来解决这一问题，使“指数爆炸”问题可以在时间复杂度为
+$O(N^2 T)$ 的范围内解决。
+----------------------------
+为了实现前向算法，需要定义个前向变量 $\alpha_t(i)$ 。
+定义 前向变量 $\alpha_t(i)$ 是在时间t，HMM输出了序列 $O_1 O_2 \ldots O_t$ ，并且位于状态 $s_t$ 的概率：
+$$\alpha_t(i) = P(O_1 O_2 \ldots O_t, q_t = s_i | \mu)$$
+前向算法的主要思想是，如果可以快速地计算前向变量 $\alpha_t(i)$ ， 那么，就可以根据 $\alpha_t(i)$ 计算出 $P(O|\mu)$ ，
+因为 $P(O \mid \mu)$ 是在所有状态 $q_T$ 下观察到序列 $O=O_1 O_2 \ldots O_T$ 的概率：
+$$ P(O \mid \mu) \sum_{s_t} P(O_1 O_2 \ldots O_T, q_T = s_i \mid \mu) = \sum^N_{i=1} \alpha_T(i)$$
+在前向算法中，采用动态规划的方法计算前向变量 $\alpha_t(i)$ ，其实现思想基于如下观察：
+在时间t+1 的前向变量可以根据在时间t时的前向变量 $\alpha_t(1),\alpha_t(2),\ldots,\alpha_t(N)$ 的值来归纳计算：
+$$ a_{t+1}(j) = \left( \sum^N_{i=1} \alpha_t(i) a_{ij} b_j(O_{t+1})\right)$$
+在格架结构中， $\alpha_{t+1}(j)$ 存放在 $(s_j, t+1)$ 处的节点上，表示在已知观察序列 $O_1 O_2 \ldots O_t$ 的情况下，
+从时间t到达下一个时间t+1时的状态为 $s_j$ 的概率。
+
+从初始时间序列开始到t+1，HMM到达状态 $s_j$ ， 并输出观察序列 $O_1 O_2 \ldots O_{t+1}$ 的过程可以分解为以下两个步骤：
+（1）从初始时间开始到时间t，HMM到达状态 $s_i$ ,并输出观察序列 $O_1 O_2 \ldots O_t$ ;
+(2) 从状态 $s_i$ 转移到状态 $s_j$, 并在状态 $s_j$ 输出 $O_{t+1}$ 。
+这里 $s_i$ 可以是HMM的任意状态。根据前向变量 $\alpha_t(i)$ 的定义，从某一状态 $s_i$ 出发完成第一步的概率就是 $\alpha_t(i)$,
+而实现第二步的概率为： $a_{ij}\times b_j (O_{t+1})$ 。因此，从初始时间到 $t+1$ 整个过程的概率为：
+$\alpha_t(i)\times a_{ij} \times b_j(O_{t+1})$ 。
+
+
+#+BEGIN_QUOTE
+前向算法(forward procedure)
+step1 初始化： $\alpha_1(i) = \pi_i b_i(O_1), 1\leq i\leq N$
+step2 归纳计算：
+      $$\alpha_{t+1}(j) = \left(\sum^N_{i=1} \alpha_t (i) a_{ij}\right)b_j(O_{t+1}), 1\leq t\leq T-1$$
+step3 求和终结
+      $$P(O \mid \mu) = \sum^N_{i=1} \alpha_T(i)$$
+
+在初始化步骤中， $\pi_i$ 是初始状态 $s_i$ 的概率， $b_i(O_1)$ 是在 $s_i$ 状态输出 $O_1$ 的概率，那么 $\pi_i b_i(O_1)$
+就是时刻t=1时，HMM在 $s_i$ 状态输出序列 $O_1$ 的概率，即前向变量 $\alpha_1(i)$ 。一共有N个状态，因此，需要初始化
+N个前向变量 $\alpha_1(1),\alpha_1(2),\ldots,\alpha_1(N)$ .
+
+#+END_QUOTE
+#+BEGIN_SRC python
+  def _forward(self, Obs):
+      """
+      Computes the forward probability trellis for an HMM parameterized by
+      '(A, B, pi)'
+
+      Parameters
+      ----------
+      Obs : numpy array of shape '(T, )'
+           An observation  sequence of length 'T'
+
+      Returns
+      ---------
+      forward : numpy array of shape '(N, T)'
+           The forward trellis
+      """
+      eps = self.eps
+      T = Obs.shape[0]
+
+      # initialize the forward probability matrix
+      forward = np.zeros((self,N, T))
+
+      ot = Obs[0]
+      for s in range(self.N):
+          forward[s, 0] = np.log(self.pi[s] + eps) + np.log(self.B[s, ot] + eps)
+
+      for t in range(1, T):
+          ot = Obs[t]
+          for s in range(self.N):
+              forward[s, t] = logsumexp(
+                  [
+                      forward[s_, t -1]
+                      + np.log(self.A[s_, s] + eps)
+                      + np.log(self.B[s, ot] + eps)
+                      for s_ in range(self.N)
+                  ]
+              )
+
+      return forward
+#+END_SRC
+
+------------------
+对应于前向变量，在如下定义一个后向变量 $\beta_t(i)$ 。
+定义 后向变量 $\beta_t(i)$ 是在给定了模型 $\mu=(A,B,\pi)$ ,并且在时间t状态为 $s_t$ 的条件下，HMM输出观察序列
+$O_{t+1} O_{t+2} \ldots O_T$ 的概率：
+$$ \beta_t(i) = P(O_{t+1} O_{t+2} \ldots O_T \mid q_t = s_i, \mu)$$
+
+与计算前向变量一样，可以用动态规划的算法计算后向变量。类似地，在时间t状态为 $s_i$ 的条件下，HMM输出观察序列
+$O_{t+1} O_{t+2}\ldots O_{T}$ 的过程可以分解为以下两个步骤：
+（1） 从时间t到达下一个时间t+1，HMM由状态 $s_i$ 到状态 $s_j$ , 并从 $s_j$ 输出 $O_{t+1}$ ；
+（2） 在时间t+1的状态为 $s_j$ 的条件下，HMM输出观察序列 $O_{t+1} O_{t+2} \ldots O_T$ 。
+第一步中输出 $O_{t+1}$ 的概率为： $a_{ij} \times b_j(O_{t+1})$ ；第二步中根据后向变量的定义，HMM输出观察序列为
+$O_{t+1} O_{t+2} \ldots O_T$ 的概率就是后向变量 $\beta_{t+1}(i)$ 。
+于是，得到如下归纳关系：
+$$ \beta_t(i) = \sum^N_{j=1} a_{ij} b_j(O_{t+1})\beta_{t+1}(j)$$
+
+
+
+#+BEGIN_QUOTE
+后向算法(backward procedure)
+step1 初始化： $\beta_T(i) = 1, 1\leq i \leq N$
+step2 归纳计算：
+      $$\beta_t(i) = \sum^N_{j=1}a_{ij}b_j(O_{t+1})\beta_{t+1}(j), T-1 \geq t \geq 1; 1\leq i \leq N$$
+step3 求和终结：
+     $$ P(O \mid \mu) = \sum^N_{i=1} \pi_i \beta_t(i)$$
+
+#+END_QUOTE
+
+#+BEGIN_SRC python
+  def _backward(self, Obs):
+      eps = self.eps
+      T = Obs.shape[0]
+
+      # initialize the backward trellis
+      backward = np.zeros((self.N, T))
+
+      for s in range(self.N):
+          backward[s, T - 1] = 0
+
+      for t in reversed(range(T-1)):
+          ot1 = Obs[t + 1]
+          for s in range(self.N):
+              backward[s, t] = logsumexp(
+                  [
+                      np.log(self.A[s, s_] + eps)
+                      + np.log(self.B[s_, ot1] + eps)
+                      + backward[s_, t+1]
+                      for s_ in range(self.N)
+                  ]
+              )
+
+      return backward
+#+END_SRC
+
+更一般地，实际上我们可以采用前向算法和后向算法相结合的方法来计算观察序列的概率：
+
+$$ P(O, q_t=s_i \mid \mu) = P(O_1 \ldots O_T, q_t = s_i \mid \mu)$$
+$$= P(O_1\ldots O_{t-1}, q_t = s_i, O_t \ldots O_T \mid \mu)$$
+$$= P(O_1\ldots O_{t-1}, q_t = s_i \mid \mu) \times P(O_t \ldots O_T \mid O_1 \ldots O_{t-1}, q_t = s_i , \mu)$$
+$$= P(O_1 \ldots O_{t-1}, q_t = s_i \mid \mu) \times P(O_t \ldots O_T \mid q_t = s_i, \mu)$$
+$$ = \alpha_t(i)\beta_t(i)$$
+
+因此 
+
+$$P(O \mid \mu) = \sum^N_{i=1} \alpha_t(i) \times \beta_t(i), 1\leq t \leq T$$
+
+* 维特比算法
+维特比(Viterbi)算法用于求解HMM中的这样的问题，即给定一个观察序列 $O=O_1 O_2 \ldots O_T$ 和模型 $\mu = (A,B,\pi)$ ,
+如何快速有效地选择在一定意义下“最优”的状态序列 $Q=q_1 q_2 \ldots q_T$ ，使得该序列状态序列“最好地解释”观察序列。
+
+一种理解是，使该状态序列中每一个状态都单独具有最大概率，即要使得
+$\gamma_t(i) = P(q_t = s_i \mid O, \mu)$ 最大。
+
+根据贝叶斯公式，有 
+
+$$\gamma_t(i) = P(q_t = s_i \mid O, \mu) = \frac{P(q_t = s_i, O \mid \mu)}{P(O \mid \mu)}$$
+
+因此
+
+$$\gamma_t(i) = \frac{\alpha_t(i) \beta_t(i)}{\sum^N_{i=1} \alpha_t(i)\times \beta_t(i)}$$
+#+BEGIN_SRC python :results output
+  for i in range(self.I):
+      Obs = self.O[i, :]
+      fwd = self._forward(Obs)
+      bwd = self._backward(Obs)
+      log_likelihood = logsumexp(fwd[:, self.T -1])
+
+      t = self.T - 1
+      for si in range(self.N):
+          gamma[i, si, t] = fwd[si, t] + bwd[si, t] - log_likelihood
+        
+#+END_SRC
+
+有了 $\gamma_t(i)$ ，那么，在时间t的最优状态为 
+
+$$\hat{q}_t = \arg max_{1\leq i \leq N} [\gamma_t(i)]$$
+
+根据这种对“最优状态序列”的理解，如果只考虑使每个状态的出现都单独达到最大概率，而忽略了状态序列中两个状态的关系，很可能导致两个
+状态 $\hat{q}_t$ 和 $\hat{q}_{t+1}$ 之间的转移概率为0，即 $\hat{a}_t \hat{a}_{q+1} = 0$ 。那么，这种情况下，所谓的“最优
+状态序列”根本就不是合法的序列。因此，我们常常采用另一种”最优状态序列”的理解：在给定模型 $\mu$ 和观察序列O的条件下，使条件概率
+$P(Q \mid O, \mu)$ 最大的状态序列，即
+$$\hat{Q} = \arg max_{Q} P(Q \mid O,\mu)$$
+这种理解避免了前一种理解引起的“断序”的问题。根据这种理解，优化的不是状态序列中单个状态，而是整个状态序列，不合法的状态序列的概率
+为0，因此，不可能被选为最优状态序列。
+
+维特比算法运用了动态规划的搜索算法求解这种最优状态序列。为了实现这种搜索，首先定义了一个维特比变量 $\delta(i)$ 。
+定义 维特比变量 $\delta_t(i)$ 是在时间t时，HMM沿着某一条路径到达状态 $s_i$ ，并输出观察序列 $O_1 O_2\ldots O_t$ 的最大
+概率：
+$$ \delta_t(i) = max{q_1,q_2,\ldots,q_{t-1}} P(q_1, q_2,\ldots,q_t =  s_i, O_1 O_2 \ldots O_t \mid \mu)$$
+与前向变量类似，$\delta_t(i)$ 有如下递归关系：
+$$\delta_{t+1}(i) = max_{j} [ \delta_t(j) \cdot a_{ji}] \cdot  b_i(O_{t+1})$$
+这种递归关系使我们能够运用动态规划搜索技术。为了记录在时间t时，HMM通过哪一条概率最大的路径到达状态 $s_i$ ，维特比算法设置了另
+一个变量$\phi_t(i)$ 用于路径记忆, 让 $\phi_t(i)$ 记录该路径上状态 $s_i$ 的前一个（在时间t-1）的状态。
+
+#+BEGIN_QUOTE
+维特比算法(Viterbi algorithm)
+step1 初始化：
+      $$\delta_1(i) = \pi_i b_i(O_1), 1\leq i\leq N$$
+      $$\phi_1(i) = 0$$
+step2 归纳计算：
+      $$\delta_t(j) = max_{1\leq i\leq N} [\delta_{t-1}(i) \cdot a_{ij}] \cdot b_j(O_t), 2 \leq t\leq T; 1\leq j\leq N$$
+      记忆回退路径：
+      $$\phi_t(j) = \arg max_{1\leq i\leq N}[\delta_{t-1}(i) \cdot a_{ij}]\cdot b_j(O_t), 2\leq t\leq T; 1\leq i \leq N$$
+step3 终结：
+      $$\hat{Q}_t = \arg max_{1\leq i \leq N}[\delta_T(i)]$$
+      $$\hat{P}(\hat{Q}_T) = max_{1\leq i \leq N} [ \delta_T(i)]$$
+step4 路径（状态序列）回溯：
+      $$\hat{q}_t = \phi_{t+1}(\hat{q}_{t+1}), t = T-1,T-2,\ldots, 1$$
+
+#+END_QUOTE
+** HMM的参数估计
+给定一个序列观察序列 $O=O_1 O_2 \ldots O_T$ , 如何调节模型 $\mu=(A,B,\pi)$ 的参数，使得 $P(O \mid \mu)$ 最大化：
+$$ \arg max_{\mu} P(O_{training} \mid \mu)$$
+模型的参数是值构成 $\mu$ 的 $\pi,a_{ij},b_j(k)$ 。 最大似然估计方法可以作为HMM参数估计的一种选择。如果产生观察序列O的状态序列 
+$Q=q_1 q_2 \ldots q_T$ 已知，根据最大似然估计，HMM的参数可以通过如下公式计算：
+
+$$\bar{\pi} = \delta(q_1,s_i)$$
+
+$$\bar{a}_{ij} = frac{Q中从状态q_i 转移到 q_j 的次数}{Q中所有状态 q_i 装一到另一状态（包括 q_i 自身）的次数}$$
+$$= \frac{\sum^{T-1}_{t=1} \delta(q_t, s_i) \times \delta(q_{t+1}, s_j)}{\sum^{T-1}_{t=1} \delta(q_t, s_i)}$$
+
+$$\bar{b}_j(k) = \frac{Q中从状态 q_j 输出符号 u_k 的次数}{Q到达 q_j 的次数}$$
+$$= \frac{\sum^T_{t=1} \delta(q_t, s_j) \times \delta(O_t, u_k)}{\sum^T_{t=1} \delta(q_t, s_j)}$$
+其中， $\delta(x,y)$ 为克罗奈克(Kronecker)函数，当x=y时，$\delta(x,y)=1$ ；否则，$\delta(x,y)=0$ 。$u_k$ 是HMM输出符号集中
+的第k个符号。
+
+但实际上，由于HMM中的状态序列Q是观察不到的（隐变量），因此，这种最大似然估计的方法不可行。所幸的是，期望最大化(expectation maximization,EM)
+算法可以用与含有隐变量的统计模型的参数最大似然估计。
+
+
+Baum-Welch算法或前向后向算法(forward-backward algorithm)用于具体实现这个EM方法。
+
+给定HMM的参数 $\mu$ 和观察序列 $O=O_1 O_2 \ldots O_T$ ,在时间t位于状态 $s_i$, 时间 $t+1$ 位于状态 $s_j$ 的概率 
+$\varepsilon_t(i,j) = P(q_t = s_i, q_{t+1} = s_j \mid O, \mu)$ , $(1\leq t\leq T, 1\leq i,j \leq N)$ 可以由下面的公式
+计算获得：
+
+$$ \varepsilon_t(i,j) = \frac{P(q_t = s_i, q_{t+1} = s_j , O \mid \mu)}{P(O \mid \mu)}$$  （6-24）
+$$=\frac{\alpha_t(i) a_{ij} b_j (O_{t+1}) \beta_{t+1}(j)}{P(O\mid \mu)}$$
+$$= \frac{\alpha_t(i) a_{ij} b_j (O_{t+1}) \beta_{t+1}(j)}{ \sum^N_{i=1} \sum^N_{j=1} \alpha_t(i) a_{ij} b_j(O_{t+1})\beta_{t+1}(j)}$$
+
+
+给定HMM $\mu$ 和观察序列 $O=O_1 O_2 \ldots O_T$ ，在时间t位于状态 $s_i$ 的概率 $\gamma_t(i)$ 为 
+$$\gamma_t(i) = \sum^N_{j=1} \varepsilon_t(i,j)$$ （6-25）
+
+由此， $\mu$ 的参数可以由下面的公式重新估计：
+
+$$\bar{\pi}_i = P(q_1 = s_i \mid O, \mu) = \gamma_t(i)$$  （6-26）
+
+$$\bar{a}_{ij} = \frac{\sum^{T-1}_{i=1} \varepsilon_t(i,j)}{\sum^{T-1}_{t=1} \gamma_t(i)}$$  （6-27）
+
+$$ \bar{b}_j(k) = \frac{\sum^T_{t=1} \gamma_t(j) \times \delta(O, u_k)}{\sum^T_{t=1} \gamma_t(j)}$$ （6-28）
+
+#+BEGIN_QUOTE
+前向后向算法(forward-backward algorithm)
+step1 初始化：随机地给参数 \pi, a_{ij}, b_j(k)$ 赋值，使其满足如下约束：
+      $$\sum^N_{i=1} \pi_i = 1$$
+      $$\sum^N_{j=1} a_{ij} = 1$$ , $1\leq i \leq N$
+      $$\sum^M_{k=1} b_j (k) = 1$$ , $1\leq j \leq N$
+     由此得到模型 $\mu_0$ 。令i=0，执行下面的EM估计。
+step2 EM计算：
+      E-step：由模型 $\mu_i$ 根据式（6-24）和式（6-25）计算期望值 $\varepsilon_t(i,j)$ 和 $\gamma_t(i)$ ;
+      M-step: 用E-step得到的期望值，根据式（6-26）、（6-27）和（6-28）重新估计参数 $\pi, a_{ij},b_j(k)$ 的值，得到模型
+              $\mu_{i+1}
+step3 循环计算：
+      令i=i+1。重复执行EM计算，知道 $\pi, a_{ij}, b_j(k)$ 收敛。
+
+
+#+END_QUOTE
+
+
+
+
 
