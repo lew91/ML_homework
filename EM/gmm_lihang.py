@@ -146,7 +146,7 @@ class GMM_Lihang:
 
             log_denom = logsumexp(denom_vals)
             gamma = np.exp([num - log_denom for num in denom_vals])
-            assert_allclose(np.sum(gammas), 1, err_msg="{}".format(np.sum(gammas)))
+            assert_allclose(np.sum(gamma), 1, err_msg="{}".format(np.sum(gammas)))
             
             self.gammas[n, :] = gamma
 
