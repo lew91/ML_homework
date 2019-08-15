@@ -23,6 +23,13 @@ def Gaussian_(X, mu, Sigma):
     return prob
 
 
+def logsumexp(log_probs, axis=None):
+    _max = np.max(log_probs)
+    ds = log_probs - _max
+    exp_sum = np.exp(ds).sum(axis=axis)
+    return _max + np.log(exp_sum)
+
+
 class GMM_Lihang:
     def __init__(self, C=3, seed=None):
         """
@@ -78,7 +85,7 @@ class GMM_Lihang:
                 mu_k = self.mu[c, :]
                 sigma_k = self.sigma[c, :, :]
 
-                prob = np.log(alpha_k * Gaussian_(x_i, mu_k, sigma_k) + eps)
+                prob = z_nk * (np.log(alpha_k) + np.log(Gaussian_(x_i, mu_k, sigma_k)))
 
                 expec1 += prob
                 expec2 += z_nk * np.log(z_nk + eps)
@@ -134,14 +141,14 @@ class GMM_Lihang:
                 mu_c = self.mu[c, :]
                 sigma_c = self.sigma[c, :, :]
                 
-                posterior= a_c * Gaussian_(x_n, mu_c, sigma_c)
+                posterior = np.log(a_c) + np.log(Gaussian_(x_n, mu_c, sigma_c))
                 denom_vals.append(posterior)
 
-            gammas = denom_vals / np.sum(denom_vals, axis=0)
-
+            log_denom = logsumexp(denom_vals)
+            gamma = np.exp([num - log_denom for num in denom_vals])
             assert_allclose(np.sum(gammas), 1, err_msg="{}".format(np.sum(gammas)))
             
-            self.gammas[n, :] = gammas
+            self.gammas[n, :] = gamma
 
     def _M_step(self):
         C, N, X = self.C, self.N, self.X
