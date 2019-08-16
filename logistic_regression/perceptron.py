@@ -20,7 +20,7 @@ class Perceptron(object):
         Number of misclassifications in every epoch.
 
     """
-    
+
     def __init__(self, eta=0.01, n_iter=10):
         self.eta = eta
         self.n_iter = n_iter    # the number of epochs
@@ -28,6 +28,8 @@ class Perceptron(object):
     def fit(self, X, y):
         """
         Fit training data.
+
+        w <- w + w^T * X
 
         Parameters
         ----------
@@ -65,4 +67,4 @@ class Perceptron(object):
         Return class label after unit step.
         """
         return np.where(self.net_input(X) >= 0.0, 1, -1)
-    
+
