@@ -105,3 +105,19 @@ $$ w:= w +\alpha \nabla_w f(w)$$
 $\alpha$ 表示移动的步长。
 
 该公式将一直被迭代执行，直至达到某个停止条件为止，比如迭代次数达到某个指定值或算法达到某个可以允许的误差范围。
+* Negative log likelihood 
+$$\text{NLL} = - \frac{1}{N} \left [ \left (\sum^N_{i=1} y_i \log (\hat{y}_i) + 
+(1-y_i) \log (1-\hat{y}_i) \right) - \frac{\gamma}{2} ||\mathbf{b}||_2 \right]$$
+#+BEGIN_SRC python :results output
+  def _NLL(self, X, y, y_pred):
+      """
+      Penalized negative log likelihood of the targets under the current
+      model.
+      """
+      N, M = X.shape
+      order = 2 if self.penalty == "l2" else 1
+      nll = -np.log(y_pred[y == 1]).sum() - np.log(1 - y_pred[y == 0]).sum()
+      penalty = 0.5 * self.gamma * np.linalg.norm(self.beta, ord=order) ** 2
+      return (penalty + nll) / N
+#+END_SRC
+
