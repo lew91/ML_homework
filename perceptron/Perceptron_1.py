@@ -10,20 +10,22 @@ class Perceptron(object):
         self.errors_ = []
 
         for _ in range(self.n_iter):
-            self.errors_ = 0
+            error = 0
             for xi, est in zip(X, y):
                 est = self.eta * (est - self.predict(xi))
                 self.w_[0] += est   # bias, b <- b + \eta * y_i
                 self.w_[1:] += est * xi   # weights, w <- w + \eta * y_i * x_i
-                errors += int(est != 0.0)
-            self.errors_.append(errors)
+                error += int(est != 0.0)
+            self.errors_.append(error)
         return self
 
     def net_input(self, X):
         return dot(X, self.w_[1:]) + self.w_[0]
 
     def predict(self, X):
-        return where(self.net_input(X) >=0.0, 1, -1)
+        #return where(self.net_input(X) >=0.0, 1, -1)
+        return sign(self.net_input(X))
+
 
 
 
