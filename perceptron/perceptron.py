@@ -4,7 +4,7 @@ import numpy as np
 class Perceptron:
     def __init__(self, fit_intercept=True):
         """
-        A simple perceptron model fit via gradient ascent
+        A simple perceptron model fit via gradient descent
 
         Parameters
         ---------
@@ -19,7 +19,7 @@ class Perceptron:
 
     def fit(self, X, y, tol=1e-7, lr=0.01, max_iter=500):
         """
-        Fit the regression coefficients via gradient ascent
+        Fit the regression coefficients via gradient 
 
         Parameter
         -------
@@ -41,20 +41,14 @@ class Perceptron:
         if self.fit_intercept:
             X = np.c_[np.ones(X.shape[0]), X]
 
-        #self.n_class = list(set(y))
         self.target_ = np.unique(y)
         assert self.target_.shape[0] == 2, \
             "label must be two classes!,but there have {}".format(self.target_.shape[0])
 
-        #self.beta = np.random.rand(X.shape[1])
         self.beta = np.zeros(X.shape[1])
 
         self.n_iter = 0
         for _ in range(max_iter):
-            # for x, est in zip(X, y):
-            #     y_pred = self._sign(x)
-            #     error = est - y_pred
-            #     self.beta += lr * error * x
             y_pred = self._sign(X)
             loss = self._perceptron_loss(y, y_pred)
             if loss < tol:
