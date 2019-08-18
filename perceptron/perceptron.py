@@ -19,7 +19,16 @@ class Perceptron:
 
     def fit(self, X, y, tol=1e-7, lr=0.01, max_iter=500):
         """
-        Fit the regression coefficients via gradient 
+        Fit the regression coefficients via gradient
+
+        ::math:
+        The loss function is
+        
+               L(X,y) = max(0, -y(w \cdot X +  b))
+
+        If all '(X, y)' was classified correctly, then
+        
+              y_i(w \cdot x_i + b) > 0
 
         Parameter
         -------
