@@ -3,46 +3,89 @@ import numpy as np
 
 class Perceptron:
     def __init__(self, fit_intercept=True):
+        """
+        A simple perceptron model fit via gradient ascent
+
+        Parameters
+        ---------
+        fit_intercept : bool
+             Whether to fit an intercept term in addition to the coefficients
+             in  b. If True, the esimates for 'beta' will have 'M + 1'
+             dimensions, where the first dimension corresponds to the intercept.
+             Default is True.
+        """
         self.beta = None
-        self.n_class = None 
         self.fit_intercept = fit_intercept
 
-    def fit(self, X, y, lr=0.01, max_iter=500):
+    def fit(self, X, y, tol=1e-7, lr=0.01, max_iter=500):
+        """
+        Fit the regression coefficients via gradient ascent
+
+        Parameter
+        -------
+        X : NumPy array, shape '(N, M)'
+            A dataset consisting of 'N' examples, each of dimension 'M'.
+        y : NumPy array, shape '(N, )'
+            The binary targets for each of the 'N' examples in 'X'
+        tol : float
+            When to stop iteration, for the excepted errors rate (loss).
+        lr : float
+            The gradient learning rate. Default is 0.01
+        max_iter : int
+            The maximum number of iterations to run the gradient solver.
+            Default is 500.
+        """
         err_msg = "The dataset and the label must have same dimension"
         assert (X.shape[0] == y.shape[0]), err_msg
 
         if self.fit_intercept:
             X = np.c_[np.ones(X.shape[0]), X]
 
-        self.n_class = list(set(y))
-        assert len(self.n_class) == 2, \
-            "label must be two classes!,but there have {}".format(len(self.n_class))
-        
+        #self.n_class = list(set(y))
+        self.target_ = np.unique(y)
+        assert self.target_.shape[0] == 2, \
+            "label must be two classes!,but there have {}".format(self.target_.shape[0])
+
         #self.beta = np.random.rand(X.shape[1])
         self.beta = np.zeros(X.shape[1])
 
+        self.n_iter = 0
         for _ in range(max_iter):
-            for x, est in zip(X, y):
-                y_pred = self._sign(x)
-                error = est - y_pred
-                self.beta += lr * error * x
-            
+            # for x, est in zip(X, y):
+            #     y_pred = self._sign(x)
+            #     error = est - y_pred
+            #     self.beta += lr * error * x
+            y_pred = self._sign(X)
+            loss = self._perceptron_loss(y, y_pred)
+            if loss < tol:
+                return
+            self.beta += lr * self._grad(X, y, y_pred)
+            self.n_iter += 1
+
     def score(self, X, y):
         if self.fit_intercept:
             X = np.c_[np.ones(X.shape[0]), X]
-            
+
         y_pred = self._sign(X)
         acc_ = 0.0
         for i in range(len(y)):
             if y_pred[i] == y[i]:
                 acc_ += 1
         return acc_ / len(y)
-            
+
     def _sign(self, x):
-        return np.where(np.dot(x, self.beta) >= 0, max(self.n_class), min(self.n_class))
+        """
+        The binary targets whether is {-1, +1} or {0, 1}
+        """
+        return np.where(np.dot(x, self.beta) >= 0, max(self.target_), min(self.target_))
+
+    def _perceptron_loss(self, y, y_pred):
+        N = y.shape[0]
+        error = y - y_pred
+        return np.linalg.norm(error, ord=1) / N
 
     def _grad(self, X, y, y_pred):
-        N, M = X.shape
+        N = X.shape[0]
         return  np.dot(y - y_pred, X) / N
 
     def predict(self, X):
@@ -52,7 +95,6 @@ class Perceptron:
             else:
                 X = np.c_[np.ones(X.shape[0]), X]
 
-        #return np.sign(np.dot(X,self.beta))
         return self._sign(X)
 
 
