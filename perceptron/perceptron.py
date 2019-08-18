@@ -70,11 +70,8 @@ class Perceptron:
             X = np.c_[np.ones(X.shape[0]), X]
 
         y_pred = self._sign(X)
-        acc_ = 0.0
-        for i in range(len(y)):
-            if y_pred[i] == y[i]:
-                acc_ += 1
-        return acc_ / len(y)
+        acc_ = 1 - self._perceptron_loss(y, y_pred)
+        return acc_
 
     def _sign(self, x):
         """
