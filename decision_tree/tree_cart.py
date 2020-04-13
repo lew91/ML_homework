@@ -48,7 +48,7 @@ class DecisionTree:
 
         self.n_feats = n_feats
         self.criterion = criterion
-        self.clasifier = classifier
+        self.classifier = classifier
         self.max_depth = max_depth if max_depth else np.inf
 
         if not classifier and criterion in ["gini", "entropy"]:
